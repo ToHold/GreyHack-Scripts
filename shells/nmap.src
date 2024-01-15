@@ -1,0 +1,12 @@
+import_code("/home/Tusspot/workspace/imports/nmap.src")
+import_code("/home/Tusspot/workspace/imports/colors.src")
+
+if params.len == 0 then
+	exit(colors.yellow + "Please choose an IP to scan network map")
+else if params.len > 1 then
+	print(colors.red + "Too many arguments")
+	exit(colors.yellow + "Please choose an IP to scan network map")
+else
+	ipCheck(params[0])
+	nmap(params[0])
+end if

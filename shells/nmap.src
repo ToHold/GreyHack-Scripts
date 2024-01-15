@@ -1,5 +1,6 @@
 import_code("/home/Tusspot/workspace/imports/nmap.src")
 import_code("/home/Tusspot/workspace/imports/colors.src")
+import_code("/home/Tusspot/workspace/imports/ipCheck.src")
 
 if params.len == 0 then
 	exit(colors.yellow + "Please choose an IP to scan network map")

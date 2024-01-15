@@ -1,0 +1,48 @@
+import_code("/home/Tusspot/workspace/imports/colors.src")
+import_code("/home/Tusspot/workspace/imports/nmap.src")
+import_code("/home/Tusspot/workspace/imports/checks.src")
+
+print(colors.orange + "  *   )                                     )  ")
+print(colors.orange + "` )  /(     (                            ( /(  ")
+print(colors.orange + " ( )(_))   ))\   (    (    `  )     (    )\()) ")
+print(colors.orange + "(_(_())   /((_)  )\   )\   /(/(     )\  (_))/  ")
+print(colors.orange + "|_   _|  (_))(  ((_) ((_) ((_)_\   ((_) | |_   ")
+print(colors.orange + "  | |    | || | (_-< (_-< | '_ \) / _ \ |  _|  ")
+print(colors.orange + "  |_|     \_,_| /__/ /__/ | .__/  \___/  \__|  ")
+print(colors.orange + "                          |_|                  ")
+
+metaxploit = include_lib("/lib/metaxploit.so")
+if not metaxploit then metaxploit = include_lib(program_path() + "metaxploit.so")
+if not metaxploit then exit("Cannot find Metaxploit Lib")
+
+crypto = include_lib("/lib/crypto.so")
+if not crypto then crypto = include_lib(program_path() + "crypto.so")
+if not crypto then exit("Cannot find Crypto Lib")
+
+// Sets IP
+while true
+	victim_ip = user_input(colors.green + "Choose IP : ")
+	if ipCheck(victim_ip) then break
+end while
+
+while true
+	print(colors.green + "0. Exit")
+	print(colors.green + "1. NMAP")
+	print(colors.green + "2. Scan routed port")
+	option = user_input(colors.green + "Choose option : ")
+	if option == "0" then
+		exit(colors.orange + "Bye Bye")
+	else if option == "1" then
+		nmap(victim_ip)
+	else if option == "2" then
+		victim_port = user_input(colors.green + "Choose PORT : ").to_int
+		if portCheck(victim_port) then
+			net_session = metaxploit.net_use(victim_ip, victim_port)
+			metalib = net_session.dump_lib()
+			scan = metaxploit.scan(metalib)
+			print(scan)
+		end if
+	else
+		print(colors.yellow + "Wrong option input")
+	end if
+end while

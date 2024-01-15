@@ -1,0 +1,24 @@
+ipCheck = function(ip)
+	ipmap = ip.split("\.")
+	if ipmap.len != 4 then 
+		print(colors.red + "Wrong ip synthax")
+		return false
+	end if
+	for digits in ipmap
+		if not digits.to_int isa number then 
+			print(colors.red + "Wrong ip synthax")
+			return false
+		end if
+	end for
+
+	return true
+end function
+
+portCheck = function(port)
+	if port isa number and port < 65535 then
+		return true
+	else
+		print(colors.red + "Wrong port synthax")
+		return false
+	end if
+end function

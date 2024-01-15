@@ -1,7 +1,0 @@
-ipCheck = function(ip)
-	ipmap = ip.split("\.")
-	if ipmap.len != 4 then exit(colors.red + "Wrong ip synthax")
-	for digits in ipmap
-		if not digits.to_int isa number then exit(colors.red + "Wrong ip synthax")
-	end for
-end function

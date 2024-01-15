@@ -1,33 +1,72 @@
-nmap = function(ip)
-	router = get_router(ip)
-	if router == null then exit(colors.red + "No router found")
-
+getRoutedPorts = function(router, ip)
 	print("Scanning Routed Ports...")
 	usedPorts = router.used_ports
 	if usedPorts.len > 0 then
 		usedPortsTable = "IP PORT SERVICE VERSION STATUS"
 		for usedPort in usedPorts
-			usedPortsTable = usedPortsTable + "\n" + usedPort.get_lan_ip + " " + usedPort.port_number + " " + router.port_info(usedPort) + " " + getColoredPortStatus(usedPort)
+			if ip != null and usedPorts.get_lan_ip == ip then
+				usedPortsTable = usedPortsTable + "\n" + usedPort.get_lan_ip + " " + usedPort.port_number + " " + router.port_info(usedPort) + " " + getColoredPortStatus(usedPort)
+			else
+				usedPortsTable = usedPortsTable + "\n" + usedPort.get_lan_ip + " " + usedPort.port_number + " " + router.port_info(usedPort) + " " + getColoredPortStatus(usedPort)
+			end if
 		end for
 		print("Router NMAP :")
 		print(format_columns(usedPortsTable))
 	end if
+end function
 
+getDevices = function(router, ip)
 	print("Scanning Devices...")
 	devices = router.devices_lan_ip
 	if devices.len > 0 then
 		devicesTable = "IP PORT SERVICE VERSION STATUS"
 		for device in devices
-			ports = router.device_ports(device)
-			for port in ports
-				devicesTable = devicesTable + "\n" + device + " " + port.port_number + " " + router.port_info(port) + " " + getColoredPortStatus(port)
-			end for
+			if ip != null and device == ip then
+				ports = router.device_ports(device)
+				for port in ports
+					devicesTable = devicesTable + "\n" + device + " " + port.port_number + " " + router.port_info(port) + " " + getColoredPortStatus(port)
+				end for
+			else
+				ports = router.device_ports(device)
+				for port in ports
+					devicesTable = devicesTable + "\n" + device + " " + port.port_number + " " + router.port_info(port) + " " + getColoredPortStatus(port)
+				end for
+			end if
 		end for
 
 		print("Devices NMAP :")
 		print(format_columns(devicesTable))
 	end if
+end function
 
-	print("FireWall :")
-	print(router.firewall_rules)
+nmap = function(mode, ip)
+	if mode == "ROUTER" then
+		router = get_router(ip)
+		if router == null then exit(colors.red + "No router found")
+	
+		getRoutedPorts(router)
+		getDevices(router)
+	
+		print("FireWall :")
+		print(router.firewall_rules)
+	else if mode == "DEVICE" then
+		router = get_router()
+
+		getRoutedPorts(router, ip)
+		getDevices(router, ip)
+
+		print("FireWall :")
+		print(router.firewall_rules)
+	else if mode == "LOCAL" then
+		print("Scanning Ports...")
+		usedPorts = get_shell.host_computer.get_ports
+		if usedPorts.len > 0 then
+			usedPortsTable = "IP PORT SERVICE VERSION STATUS"
+			for usedPort in usedPorts
+				usedPortsTable = usedPortsTable + "\n" + usedPort.get_lan_ip + " " + usedPort.port_number + " " + router.port_info(usedPort) + " " + getColoredPortStatus(usedPort)
+			end for
+			print("LOCAL NMAP :")
+			print(format_columns(usedPortsTable))
+		end if
+	end if
 end function

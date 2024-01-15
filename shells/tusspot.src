@@ -1,6 +1,7 @@
 import_code("/home/Tusspot/workspace/imports/colors.src")
 import_code("/home/Tusspot/workspace/imports/nmap.src")
 import_code("/home/Tusspot/workspace/imports/checks.src")
+import_code("/home/Tusspot/workspace/imports/scanlib.src")
 
 print(colors.orange + "  *   )                                     )  ")
 print(colors.orange + "` )  /(     (                            ( /(  ")
@@ -19,30 +20,74 @@ crypto = include_lib("/lib/crypto.so")
 if not crypto then crypto = include_lib(program_path() + "crypto.so")
 if not crypto then exit("Cannot find Crypto Lib")
 
-// Sets IP
-while true
-	victim_ip = user_input(colors.green + "Choose IP : ")
-	if ipCheck(victim_ip) then break
-end while
+globals.MODE = null
 
-while true
-	print(colors.green + "0. Exit")
-	print(colors.green + "1. NMAP")
-	print(colors.green + "2. Scan routed port")
-	option = user_input(colors.green + "Choose option : ")
-	if option == "0" then
-		exit(colors.orange + "Bye Bye")
-	else if option == "1" then
-		nmap(victim_ip)
-	else if option == "2" then
-		victim_port = user_input(colors.green + "Choose PORT : ").to_int
-		if portCheck(victim_port) then
-			net_session = metaxploit.net_use(victim_ip, victim_port)
-			metalib = net_session.dump_lib()
-			scan = metaxploit.scan(metalib)
-			print(scan)
+mainMenu = function()
+	// Sets Mode Web (Router) / Lan (remote lan PC) / Local (this PC)
+	while true
+		print(colors.green + "0. Exit")
+		print(colors.green + "1. Web (Router)")
+		print(colors.green + "2. Lan (remote lan PC)")
+		print(colors.green + "3. Local (this PC)")
+		mode_input = user_input(colors.green + "Select Mode : ")
+
+		if mode_input == "0" then
+			exit(colors.orange + "Bye Bye")
+		else if mode_input == "1" then
+			globals.MODE = "WEB"
+			attackMenu()
+		else if mode_input == "2" then
+			globals.MODE = "LAN"
+			attackMenu()
+		else if mode_input == "3" then
+			globals.MODE = "LOCAL"
+			attackMenu()
+		else
+			print(colors.yellow + "Wrong option input")
 		end if
-	else
-		print(colors.yellow + "Wrong option input")
-	end if
-end while
+	end while
+end function
+
+attackMenu = function()
+	MODE = globals.MODE
+	if not MODE then mainMenu()
+
+	while true
+		if MODE == "WEB" or MODE == "LAN" then
+			victim_ip = user_input(colors.green + "Choose IP : ")
+			if isIP(victim_ip) then
+				if MODE == "WEB" and not isRouter(victim_ip) then 
+					print(colors.red + "No router found")
+				else
+					break
+				end if
+			end if
+		else
+			break
+		end if
+	end while
+
+	while true
+		print(colors.green + "0. Back")
+		print(colors.green + "1. NMAP")
+		print(colors.green + "2. Scan routed port")
+		option = user_input(colors.green + "Choose option : ")
+		if option == "0" then
+			mainMenu()
+		else if option == "1" then
+			nmap(victim_ip)
+		else if option == "2" then
+			victim_port = user_input(colors.green + "Choose PORT : ").to_int
+			if isPORT(victim_port) then
+				net_session = metaxploit.net_use(victim_ip, victim_port)
+				metalib = net_session.dump_lib()
+				scan = scanlib(metalib, metaxploit)
+				print(scan)
+			end if
+		else
+			print(colors.yellow + "Wrong option input")
+		end if
+	end while
+end function
+
+mainMenu()

@@ -27,17 +27,17 @@ mainMenu = function()
 	while true
 		print(colors.green + "0. Exit")
 		print(colors.green + "1. Web (Router)")
-		print(colors.green + "2. Lan (remote lan PC)")
+		print(colors.green + "2. Lan (remote lan Device)")
 		print(colors.green + "3. Local (this PC)")
 		mode_input = user_input(colors.green + "Select Mode : ")
 
 		if mode_input == "0" then
 			exit(colors.orange + "Bye Bye")
 		else if mode_input == "1" then
-			globals.MODE = "WEB"
+			globals.MODE = "ROUTER"
 			attackMenu()
 		else if mode_input == "2" then
-			globals.MODE = "LAN"
+			globals.MODE = "DEVICE"
 			attackMenu()
 		else if mode_input == "3" then
 			globals.MODE = "LOCAL"
@@ -53,15 +53,22 @@ attackMenu = function()
 	if not MODE then mainMenu()
 
 	while true
-		if MODE == "WEB" or MODE == "LAN" then
-			victim_ip = user_input(colors.green + "Choose IP : ")
+		if MODE == "ROUTER" or MODE == "DEVICE" then
+
+			if MODE == "ROUTER" then 
+				victim_router_ip = user_input(colors.green + "Choose IP to attack : ")
+			end if
+
+			victim_ip = user_input(colors.green + "Choose IP to attack : ")
+
 			if isIP(victim_ip) then
-				if MODE == "WEB" and not isRouter(victim_ip) then 
+				if MODE == "ROUTER" and isIP(victim_ip) and not isRouter(victim_router_ip) then 
 					print(colors.red + "No router found")
 				else
 					break
 				end if
 			end if
+
 		else
 			break
 		end if

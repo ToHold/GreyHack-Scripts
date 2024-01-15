@@ -1,9 +1,1 @@
 colors = { "red":"<color=red>", "green":"<color=green>", "yellow":"<color=yellow>", "orange":"<color=orange>" }
-getColoredPortStatus = function(port)
-	if port.is_closed then
-		status = colors.red + "CLOSED"
-	else
-		status = colors.green + "OPEN"
-	end if
-	return status
-end function

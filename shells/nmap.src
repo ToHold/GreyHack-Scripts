@@ -1,6 +1,6 @@
-import_code("/home/Tusspot/workspace/imports/nmap.src")
-import_code("/home/Tusspot/workspace/imports/colors.src")
-import_code("/home/Tusspot/workspace/imports/checks.src")
+import_code("../imports/nmap.src")
+import_code("../imports/colors.src")
+import_code("../imports/checks.src")
 
 if params.len > 2 then
 	print(colors.red + "Too many arguments")

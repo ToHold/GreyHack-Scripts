@@ -1,5 +1,5 @@
-getColoredStatus = function(port)
-	if port.is_closed then
+getColoredStatus = function(statusBoolean)
+	if statusBoolean then
 		status = colors.red + "CLOSED"
 	else
 		status = colors.green + "OPEN"
@@ -16,23 +16,25 @@ getRoutedServices = function(router, ip, silent = false)
 	if usedPorts.len > 0 then
 		servicesTables = "IP PORT SERVICE VERSION STATUS"
 		for usedPort in usedPorts
-			if ip != null and usedPort.get_lan_ip == ip then
-				portInfo = router.port_info(usedPort).split(" ")
-				service = portInfo[0]
-				version = portInfo[1]
-				serviceMap = {"ip":usedPort.get_lan_ip, "port": usedPort, "name": service, "version": version, "isClosed": port.is_closed}
-				services.push(serviceMap)
-				if not silent then
-					servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + serviceMap.version + " " + getColoredStatus(serviceMap.is_closed)
+			if ip != null then
+				if usedPort.get_lan_ip == ip then
+					portInfo = router.port_info(usedPort).split(" ")
+					service = portInfo[0]
+					version = portInfo[1]
+					serviceMap = {"publicIP": router.public_ip, "ip": usedPort.get_lan_ip, "port": usedPort, "name": service, "version": version, "isClosed": usedPort.is_closed}
+					services.push(serviceMap)
+					if not silent then
+						servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + " " + serviceMap.version + " " + getColoredStatus(serviceMap.isClosed)
+					end if
 				end if
 			else
 				portInfo = router.port_info(usedPort).split(" ")
 				service = portInfo[0]
 				version = portInfo[1]
-				serviceMap = {"ip":usedPort.get_lan_ip, "port": usedPort, "name": service, "version": version, "isClosed": port.is_closed}
+				serviceMap = {"publicIP": router.public_ip, "ip": usedPort.get_lan_ip, "port": usedPort, "name": service, "version": version, "isClosed": usedPort.is_closed}
 				services.push(serviceMap)
 				if not silent then
-					servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + serviceMap.version + " " + getColoredStatus(serviceMap.is_closed)
+					servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + " " + serviceMap.version + " " + getColoredStatus(serviceMap.isClosed)
 				end if
 			end if
 		end for
@@ -51,27 +53,29 @@ getDeviceServices = function(router, ip, silent = false)
 	end if
 	devices = router.devices_lan_ip
 	if devices.len > 0 then
-		devicesTable = "IP PORT SERVICE VERSION STATUS"
+		servicesTables = "IP PORT SERVICE VERSION STATUS"
 		for device in devices
 			ports = router.device_ports(device)
 			for port in ports
-				if ip != null and device == ip then
-					portInfo = router.port_info(port).split(" ")
-					service = portInfo[0]
-					version = portInfo[1]
-					serviceMap = {"ip":device, "port": port, "name": service, "version": version, "isClosed": port.is_closed}
-					services.push(serviceMap)
-					if not silent then
-						servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + serviceMap.version + " " + getColoredStatus(serviceMap.is_closed)
+				if ip != null then
+					if device == ip then
+						portInfo = router.port_info(port).split(" ")
+						service = portInfo[0]
+						version = portInfo[1]
+						serviceMap = {"publicIP": router.public_ip, "ip": device, "port": port, "name": service, "version": version, "isClosed": port.is_closed}
+						services.push(serviceMap)
+						if not silent then
+							servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + " " + serviceMap.version + " " + getColoredStatus(serviceMap.isClosed)
+						end if
 					end if
 				else
 					portInfo = router.port_info(port).split(" ")
 					service = portInfo[0]
 					version = portInfo[1]
-					serviceMap = {"ip":device, "port": port, "name": service, "version": version, "isClosed": port.is_closed}
+					serviceMap = {"publicIP": router.public_ip, "ip": device, "port": port, "name": service, "version": version, "isClosed": port.is_closed}
 					services.push(serviceMap)
 					if not silent then
-						servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + serviceMap.version + " " + getColoredStatus(serviceMap.is_closed)
+						servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + " " + serviceMap.version + " " + getColoredStatus(serviceMap.isClosed)
 					end if
 				end if
 			end for
@@ -79,13 +83,13 @@ getDeviceServices = function(router, ip, silent = false)
 
 		if not silent then
 			print("Devices NMAP :")
-			print(format_columns(devicesTable))
+			print(format_columns(servicesTables))
 		end if
 	end if
 	return services
 end function
 
-getLocalServices = function(silent = false)
+getLocalServices = function(router, silent = false)
 	if not silent then
 		print("Scanning Local Services...")
 	end if
@@ -97,9 +101,9 @@ getLocalServices = function(silent = false)
 			portInfo = router.port_info(usedPort).split(" ")
 			service = portInfo[0]
 			version = portInfo[1]
-			serviceMap = {"ip":device, "port": usedPort, "name": service, "version": version, "isClosed": usedPort.is_closed}
+			serviceMap = {"publicIP": router.public_ip, "ip": usedPort.get_lan_ip, "port": usedPort, "name": service, "version": version, "isClosed": usedPort.is_closed}
 			services.push(serviceMap)
-			servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + serviceMap.version + " " + getColoredStatus(serviceMap.is_closed)
+			servicesTables = servicesTables + "\n" + serviceMap.ip + " " + serviceMap.port.port_number + " " + serviceMap.name + " " + serviceMap.version + " " + getColoredStatus(serviceMap.isClosed)
 		end for
 		if not silent then
 			print("LOCAL NMAP :")
@@ -109,13 +113,22 @@ getLocalServices = function(silent = false)
 	return services
 end function
 
-nmap = function(mode, ip)
+nmap = function(mode, ip, routerIp, silent = false)
 	if mode == "ROUTER" then
-		router = get_router(ip)
+		if routerIp then
+			router = get_router(routerIp)
+		else
+			router = get_router(ip)
+		end if
 		if router == null then exit(colors.red + "No router found")
 	
-		getRoutedServices(router)
-		getDeviceServices(router)
+		if routerIp then
+			getRoutedServices(router, ip, silent)
+			getDeviceServices(router, ip, silent)
+		else
+			getRoutedServices(router)
+			getDeviceServices(router)
+		end if
 	
 		if not silent then
 			print("FireWall :")
@@ -124,14 +137,16 @@ nmap = function(mode, ip)
 	else if mode == "DEVICE" then
 		router = get_router()
 
-		getRoutedServices(router, ip)
-		getDeviceServices(router, ip)
+		getRoutedServices(router, ip, silent)
+		getDeviceServices(router, ip, silent)
 
 		if not silent then
 			print("FireWall :")
 			print(router.firewall_rules)
 		end if
 	else if mode == "LOCAL" then
-		getLocalServices()
+		router = get_router()
+
+		getLocalServices(router, silent)
 	end if
 end function

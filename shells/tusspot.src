@@ -1,16 +1,8 @@
-import_code("/home/Tusspot/workspace/imports/colors.src")
-import_code("/home/Tusspot/workspace/imports/nmap.src")
-import_code("/home/Tusspot/workspace/imports/checks.src")
-import_code("/home/Tusspot/workspace/imports/scanlib.src")
-
-print(colors.orange + "  *   )                                     )  ")
-print(colors.orange + "` )  /(     (                            ( /(  ")
-print(colors.orange + " ( )(_))   ))\   (    (    `  )     (    )\()) ")
-print(colors.orange + "(_(_())   /((_)  )\   )\   /(/(     )\  (_))/  ")
-print(colors.orange + "|_   _|  (_))(  ((_) ((_) ((_)_\   ((_) | |_   ")
-print(colors.orange + "  | |    | || | (_-< (_-< | '_ \) / _ \ |  _|  ")
-print(colors.orange + "  |_|     \_,_| /__/ /__/ | .__/  \___/  \__|  ")
-print(colors.orange + "                          |_|                  ")
+import_code("../imports/colors.src")
+import_code("../imports/nmap.src")
+import_code("../imports/checks.src")
+import_code("../imports/scanlib.src")
+import_code("../imports/options.src")
 
 metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then metaxploit = include_lib(program_path() + "metaxploit.so")
@@ -21,79 +13,486 @@ if not crypto then crypto = include_lib(program_path() + "crypto.so")
 if not crypto then exit("Cannot find Crypto Lib")
 
 globals.MODE = null
+globals.victim_router_ip = null
+globals.victim_ip = null
+globals.injected_password = null
+globals.selected_service = null
+globals.memoryWeakIndex = 0
+globals.memoryWeakKey = null
+globals.memoryWeak = null
+globals.unsecZoneIndex = 0
+globals.services = null
+globals.serviceIndex = 0
 
 mainMenu = function()
-	// Sets Mode Web (Router) / Lan (remote lan PC) / Local (this PC)
-	while true
-		print(colors.green + "0. Exit")
-		print(colors.green + "1. Web (Router)")
-		print(colors.green + "2. Lan (remote lan Device)")
-		print(colors.green + "3. Local (this PC)")
-		mode_input = user_input(colors.green + "Select Mode : ")
+	clear_screen()
+	print(colors.orange + "  *   )                                     )  ")
+	print(colors.orange + "` )  /(     (                            ( /(  ")
+	print(colors.orange + " ( )(_))   ))\   (    (    `  )     (    )\()) ")
+	print(colors.orange + "(_(_())   /((_)  )\   )\   /(/(     )\  (_))/  ")
+	print(colors.orange + "|_   _|  (_))(  ((_) ((_) ((_)_\   ((_) | |_   ")
+	print(colors.orange + "  | |    | || | (_-< (_-< | '_ \) / _ \ |  _|  ")
+	print(colors.orange + "  |_|     \_,_| /__/ /__/ | .__/  \___/  \__|  ")
+	print(colors.orange + "                          |_|                  ")
 
-		if mode_input == "0" then
-			exit(colors.orange + "Bye Bye")
-		else if mode_input == "1" then
-			globals.MODE = "ROUTER"
-			attackMenu()
-		else if mode_input == "2" then
-			globals.MODE = "DEVICE"
-			attackMenu()
-		else if mode_input == "3" then
-			globals.MODE = "LOCAL"
-			attackMenu()
+	// Sets Mode Web (Router) / Lan (remote lan PC) / Local (this PC)
+	options = [
+		{
+			"color": colors.green,
+			"text": "Exit",
+			"handler": function()
+				clear_screen()
+				exit(colors.orange + "Bye Bye")
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "ROUTER",
+			"handler": function()
+				globals.MODE = "ROUTER"
+				setterMenu()
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "DEVICE",
+			"handler": function()
+				globals.MODE = "DEVICE"
+				setterMenu()
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "LOCAL",
+			"handler": function()
+				globals.MODE = "LOCAL"
+				setterMenu()
+			end function
+		}
+	]
+
+	optionsHandler(options, colors.green + "Select Mode : ")
+end function
+
+setterMenu = function()
+	clear_screen()
+	getCurrentIPSet = function(ip)
+		if ip != null then
+			return " ( Currently set : " + ip + " )"
 		else
-			print(colors.yellow + "Wrong option input")
+			return ""
 		end if
+	end function
+
+	if not MODE then mainMenu()
+
+	options = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				mainMenu()
+			end function
+		}
+	]
+
+	if MODE == "ROUTER" or MODE == "DEVICE" then
+		print(colors.yellow + "At least IP to attack or Router IP is needed")
+		options = options + [
+			{
+				"color": colors.green,
+				"text": "Set Router IP" + getCurrentIPSet(victim_router_ip),
+				"handler": function()
+					while true
+						next = true
+						victim_router_ip = user_input(colors.green + "Choose Router IP (press enter to skip) : ")
+		
+						if victim_router_ip.len == 0 then 
+							victim_router_ip = null
+							break
+						end if
+						if victim_router_ip and not isIP(victim_router_ip) then
+							print(colors.yellow + "Invalid Router IP")
+							next = false
+						end if
+						if victim_router_ip and not isRouter(victim_router_ip) then
+							print(colors.yellow + "Router not found")
+							next = false
+						end if
+		
+						globals.victim_router_ip = victim_router_ip
+		
+						if next then break
+					end while
+					// stay in setterMenu
+					setterMenu()
+				end function
+			},
+			{
+				"color": colors.green,
+				"text": "Set IP to attack" + getCurrentIPSet(victim_ip),
+				"handler": function()
+					while true
+						next = true
+						victim_ip = user_input(colors.green + "Choose IP to attack (press enter to skip) : ")
+		
+						if victim_ip.len == 0 then 
+						victim_ip = null
+							break
+						end if
+						if victim_ip and not isIP(victim_router_ip) then
+							print(colors.yellow + "Invalid IP")
+							next = false
+						end if
+		
+						globals.victim_ip = victim_ip
+		
+						if next then break
+					end while
+					// stay in setterMenu
+					setterMenu()
+				end function
+			}
+		]
+	end if
+
+	if MODE != "ROUTER" then
+		options = options + [
+			{
+				"color": colors.green,
+				"text": "Set Password to inject" + getCurrentIPSet(injected_password),
+				"handler": function()
+					while true
+						next = true
+						injected_password = user_input(colors.green + "Choose Password to inject (press enter to skip) : ")
+		
+						if injected_password.len == 0 then 
+							injected_password = null
+							break
+						end if
+		
+						globals.injected_password = injected_password
+
+						if next then break
+					end while
+					// stay in setterMenu
+					setterMenu()
+				end function
+			}
+		]
+	end if
+
+	options = options + [
+		{
+		"color": colors.green,
+		"text": "Continue",
+		"handler": function()
+			if MODE == "LOCAL" then
+				clear_screen()
+				featuresMenu()
+			else
+				if victim_ip or victim_router_ip then 
+					clear_screen()
+					featuresMenu() 
+				else
+					setterMenu()
+				end if
+			end if
+		end function
+		}
+	]
+
+	optionsHandler(options, colors.green + "Select a Setter : ")
+end function
+
+featuresMenu = function()
+	options = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				clear_screen()
+				setterMenu()
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "NMAP",
+			"handler": function()
+				if MODE == "ROUTER" or MODE == "DEVICE" then
+					nmap(MODE, victim_ip, victim_router_ip)
+				else
+					nmap(MODE)
+				end if
+
+				// stay in attack menu
+				featuresMenu()
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "Attack",
+			"handler": function()
+				services = []
+				if MODE == "ROUTER" then 
+					if victim_router_ip and victim_ip then
+						routedServices = getRoutedServices(get_router(victim_router_ip), victim_ip, true)
+						services = services + routedServices
+					else if victim_router_ip and not victim_ip then
+						routedServices = getRoutedServices(get_router(victim_router_ip), null, true)
+						services = services + routedServices
+					else if victim_ip then
+						routedServices = getRoutedServices(get_router(), victim_ip, true)
+						services = services + routedServices
+					end if
+				end if
+				if MODE == "DEVICE" then 
+					if victim_router_ip and victim_ip then
+						deviceServices = getDeviceServices(get_router(victim_router_ip), victim_ip, true)
+						services = services + deviceServices
+					else if victim_router_ip and not victim_ip then
+						deviceServices = getDeviceServices(get_router(victim_router_ip), null, true)
+						services = services + deviceServices
+					else if victim_ip then
+						deviceServices = getDeviceServices(get_router(), victim_ip, true)
+						services = services + deviceServices
+					end if
+				else if MODE == "LOCAL" then  
+					localServices = getLocalServices(get_router(), true)
+					services = services + localServices
+				end if
+
+				globals.services = services
+				servicesSelectMenu()
+
+				// stay in attack menu
+				featuresMenu()
+			end function
+		}
+	]
+
+	optionsHandler(options, colors.green + "Choose option : ")
+end function
+
+servicesSelectMenu = function()
+	if globals.serviceIndex > services.len then globals.serviceIndex = 0
+	while serviceIndex < services.len
+		servicesOptions = [
+			{
+				"color": colors.green,
+				"text": "Back",
+				"handler": function()
+					clear_screen()
+					featuresMenu()
+				end function
+			}
+		]
+		if serviceIndex != 0 then
+			servicesOptions = servicesOptions + [
+				{
+					"color": colors.green,
+					"text": "Previous service ( host: " + services[serviceIndex - 1].ip + " service: " + services[serviceIndex - 1].name + " v." + services[serviceIndex - 1].version + " )",
+					"handler": function()
+						globals.serviceIndex = serviceIndex - 1
+					end function
+				}
+			]
+		else
+			servicesOptions = servicesOptions + [
+				{
+					"color": colors.orange,
+					"text": "Previous service ( No previous )",
+					"handler": function()
+					end function
+				}
+			]
+		end if
+
+		servicesOptions = servicesOptions + [
+				{
+					"color": colors.green,
+					"text": "Select service ( host: " + services[serviceIndex].ip + " service: " + services[serviceIndex].name + " v." + services[serviceIndex].version + " )",
+					"handler": function()
+						globals.selected_service = services[serviceIndex]
+						libAttackHandler(selected_service)
+					end function
+				}
+			]
+
+		if serviceIndex != services.len - 1 then
+			servicesOptions = servicesOptions + [
+				{
+					"color": colors.green,
+					"text": "Next service ( host: " + services[serviceIndex + 1].ip + " service: " + services[serviceIndex + 1].name + " v." + services[serviceIndex + 1].version + " )",
+					"handler": function()
+						globals.serviceIndex = serviceIndex + 1
+					end function
+				}
+			]
+		else
+			servicesOptions = servicesOptions + [
+				{
+					"color": colors.orange,
+					"text": "Next service ( No next )",
+					"handler": function()
+					end function
+				}
+			]
+		end if
+
+		clear_screen()
+		optionsHandler(servicesOptions, colors.green + "Choose Service : ")
 	end while
 end function
 
-attackMenu = function()
-	MODE = globals.MODE
-	if not MODE then mainMenu()
+libAttackHandler = function(service)
+	netSession = metaxploit.net_use(service.ip, service.port)
 
-	while true
-		if MODE == "ROUTER" or MODE == "DEVICE" then
+	service.metalib = netSession.dump_lib()
+	service.lib = scanlib(service, metaxploit)
 
-			if MODE == "ROUTER" then 
-				victim_router_ip = user_input(colors.green + "Choose IP to attack : ")
-			end if
+	if globals.memoryWeakIndex > selected_service.lib.memoryWeaks.len then globals.memoryWeakIndex = 0
+	while memoryWeakIndex < selected_service.lib.memoryWeaks.len
+		memoryWeaksOptions = [
+			{
+				"color": colors.green,
+				"text": "Back",
+				"handler": function()
+					servicesSelectMenu()
+				end function
+			}
+		]
 
-			victim_ip = user_input(colors.green + "Choose IP to attack : ")
-
-			if isIP(victim_ip) then
-				if MODE == "ROUTER" and isIP(victim_ip) and not isRouter(victim_router_ip) then 
-					print(colors.red + "No router found")
-				else
-					break
-				end if
-			end if
-
+		if memoryWeakIndex != 0 then
+			memoryWeaksOptions = memoryWeaksOptions + [
+				{
+					"color": colors.green,
+					"text": "Previous Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex - 1] +" )",
+					"handler": function()
+						globals.memoryWeakIndex = memoryWeakIndex - 1
+					end function
+				}
+			]
 		else
-			break
+			memoryWeaksOptions = memoryWeaksOptions + [
+				{
+					"color": colors.orange,
+					"text": "Previous Memory Weaks ( No previous )",
+					"handler": function()
+					end function
+				}
+			]
 		end if
-	end while
 
-	while true
-		print(colors.green + "0. Back")
-		print(colors.green + "1. NMAP")
-		print(colors.green + "2. Scan routed port")
-		option = user_input(colors.green + "Choose option : ")
-		if option == "0" then
-			mainMenu()
-		else if option == "1" then
-			nmap(victim_ip)
-		else if option == "2" then
-			victim_port = user_input(colors.green + "Choose PORT : ").to_int
-			if isPORT(victim_port) then
-				net_session = metaxploit.net_use(victim_ip, victim_port)
-				metalib = net_session.dump_lib()
-				scan = scanlib(metalib, metaxploit)
-				print(scan)
-			end if
+		memoryWeaksOptions = memoryWeaksOptions + [
+			{
+				"color": colors.green,
+				"text": "Select current Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex] +" )",
+				"handler": function()
+					globals.memoryWeakKey = selected_service.lib.memoryWeaks.indexes[memoryWeakIndex]
+					globals.memoryWeak = selected_service.lib.memoryWeaks[memoryWeakKey]
+					
+					if globals.unsecZoneIndex > selected_service.lib.memoryWeaks.len then globals.unsecZoneIndex = 0
+					while unsecZoneIndex < memoryWeak.len
+						unsecZoneOptions = []
+						unsecZoneOptions = [
+							{
+								"color": colors.green,
+								"text": "Back",
+								"handler": function()
+								globals.unsecZoneIndex = memoryWeak.len
+								end function
+							}
+						]
+						if unsecZoneIndex != 0 then
+							unsecZoneOptions = unsecZoneOptions + [
+								{
+									"color": colors.green,
+									"text": "Previous Unsecured Zone ( " + memoryWeak[unsecZoneIndex - 1] +" )",
+									"handler": function()
+										globals.unsecZoneIndex = unsecZoneIndex - 1
+									end function
+								}
+							]
+						else
+							unsecZoneOptions = unsecZoneOptions + [
+								{
+									"color": colors.orange,
+									"text": "Previous Unsecured Zone ( No previous )",
+									"handler": function()
+									end function
+								}
+							]
+						end if
+						globals.unsecZone = memoryWeak[unsecZoneIndex]
+						unsecZoneOptions = unsecZoneOptions + [
+							{
+								"color": colors.green,
+								"text": "Select current Unsecured Zone ( " + unsecZone +" )",
+								"handler": function()
+									optArgs = null
+									if MODE == "ROUTER" then
+										optArgs = victim_ip
+									else
+										optArgs = injected_password
+									end if
+									print(memoryWeakIndex)
+									print(unsecZone)
+									print(optArgs)
+									overflow = selected_service.metalib.overflow(memoryWeakKey, unsecZone, optArgs)
+								end function
+							}
+						]
+						if unsecZoneIndex != memoryWeak.len - 1 then
+							unsecZoneOptions = unsecZoneOptions + [
+								{
+									"color": colors.green,
+									"text": "Next Unsecured Zone ( " + memoryWeak[unsecZoneIndex + 1] +" )",
+									"handler": function()
+										globals.unsecZoneIndex = unsecZoneIndex + 1
+									end function
+								}
+							]
+						else
+							unsecZoneOptions = unsecZoneOptions + [
+								{
+									"color": colors.orange,
+									"text": "Next Unsecured Zone ( No next )",
+									"handler": function()
+									end function
+								}
+							]
+						end if
+						clear_screen()
+						optionsHandler(unsecZoneOptions, colors.green + "Choose Unsecured Zone : ")
+					end while
+				end function
+			}
+		]
+
+		if memoryWeakIndex != service.lib.memoryWeaks.len - 1 then
+			memoryWeaksOptions = memoryWeaksOptions + [
+			{
+				"color": colors.green,
+				"text": "Next Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex + 1] +" )",
+				"handler": function()
+					globals.memoryWeakIndex = memoryWeakIndex + 1
+				end function
+			}
+		]
 		else
-			print(colors.yellow + "Wrong option input")
+			memoryWeaksOptions = memoryWeaksOptions + [
+				{
+					"color": colors.orange,
+					"text": "Next Memory Weaks ( No next )",
+					"handler": function()
+					end function
+				}
+			]
 		end if
+
+		clear_screen()
+		optionsHandler(memoryWeaksOptions, colors.green + "Choose Memory Weaks : ")
 	end while
 end function
 

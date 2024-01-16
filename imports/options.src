@@ -1,0 +1,26 @@
+optionsHandler = function(options, inputText)
+	i = 0
+	for option in options
+		print(option.color + i + ". " + option.text)
+		i += 1
+	end for
+
+	input_ok = false
+	while not input_ok
+		input = user_input(inputText)
+		if input.len == 0 or not input.to_int isa number then
+			print("Invalid input")
+		else if input.to_int > options.len or input.to_int < 0 then
+			print("Invalid input")
+		else 
+			input_ok = true
+			i = 0
+			for option in options
+				if i == input.to_int then
+					option.handler()
+				end if
+				i += 1
+			end for
+		end if
+	end while
+end function

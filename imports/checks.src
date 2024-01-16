@@ -1,17 +1,5 @@
 isIP = function(ip)
-	ipmap = ip.split("\.")
-	if ipmap.len != 4 then 
-		print(colors.red + "Wrong ip synthax")
-		return false
-	end if
-	for digits in ipmap
-		if not digits.to_int isa number then 
-			print(colors.red + "Wrong ip synthax")
-			return false
-		end if
-	end for
-
-	return true
+	return is_valid_ip(ip)
 end function
 
 isPORT = function(port)

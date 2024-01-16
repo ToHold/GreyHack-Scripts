@@ -1,20 +1,22 @@
-scanlib = function(metalib = null, metax = null)
-    if not metalib then return null
+scanlib = function(service = null, metax = null)
+    if not service then return null
     if not metax then return null
+
+    metalib = service.metalib
 
     result = {}
     result.name = metalib.lib_name
     result.version = metalib.version
-    result.memorys = {}
-    memorys = metax.scan(metalib)
-    if not memorys isa list then return null
-    for memory in memorys
-        result.memorys[memory] = []
+    result.memoryWeaks = {}
+    memories = metax.scan(metalib)
+    if not memories isa list then return null
+    for memory in memories
+        result.memoryWeaks[memory] = []
         data = metax.scan_address(metalib, memory).split("Unsafe check: ").replace(char(10), "")
         for line in data
             if line == data[0] then continue
             value = line[line.indexOf("<b>")+3:line.indexOf("</b>")]
-            result.memorys[memory].push(value)
+            result.memoryWeaks[memory].push(value)
         end for
     end for
     return result

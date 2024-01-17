@@ -1,0 +1,112 @@
+downloadFile = function(file_to_download)
+	host_computer().touch("/home/Tusspot/Downloads/" + file_to_download.name())
+	new_file = host_computer().File("/home/Tusspot/Downloads/" + file_to_download.name())
+	new_file.set_content(file_to_download.get_content())	
+end function
+
+showFile = function(file_to_show)
+	if file_to_show.has_permission("r") then
+		print(file_to_show.get_content())
+	else
+		print(colors.red + "Not permission")
+	end if
+end function
+
+showFolder = function(folder_to_show)
+	if not folder_to_show.is_folder then 
+		print(colors.red + "Not a folder")
+	else
+		for folderIn in folder_to_show.get_folders()
+			print("Folder : " + folderIn)
+		end for
+		for fileIn in folder_to_show.get_files()
+			print("File : " + fileIn)
+		end for
+	end if
+end function
+
+// passwdContent.split(char(10))[0]
+
+decryptUserFile = function(file_user)
+	if file_user.has_permission("r") then
+		content = file_user.get_content()
+		users = content.split(char(10))
+
+		if globals.userIndex > users.len then globals.userIndex = 0
+		while userIndex < users.len
+			splitedUser = users[userIndex].split(":")
+			username = splitedUser[0]
+			passHash = splitedUser[1]
+
+			usersFileOptions = [
+				{
+					"color": colors.green,
+					"text": "Back",
+					"handler": function()
+						clear_screen()
+						overflowHandler()
+					end function
+				}
+			]
+			if userIndex != 0 then
+				usersFileOptions = usersFileOptions + [
+					{
+						"color": colors.green,
+						"text": "Previous user ( " + users[userIndex - 1].split(":")[0] + " )",
+						"handler": function()
+							globals.userIndex = userIndex - 1
+						end function
+					}
+				]
+			else
+				usersFileOptions = usersFileOptions + [
+					{
+						"color": colors.orange,
+						"text": "Previous user ( No previous )",
+						"handler": function()
+						end function
+					}
+				]
+			end if
+
+			usersFileOptions = usersFileOptions + [
+				{
+					"color": colors.green,
+					"text": "Select user ( " + username + " )",
+					"handler": function()
+						password = crypto.decipher(passHash)
+						clear_screen()
+						print("User : " + username)
+						print("Password : " + password)
+					end function
+				}
+			]
+
+			if userIndex != users.len - 1 then
+				usersFileOptions = usersFileOptions + [
+					{
+						"color": colors.green,
+						"text": "Next user ( " + users[userIndex + 1].split(":")[0] + " )",
+						"handler": function()
+							globals.userIndex = userIndex + 1
+						end function
+					}
+				]
+			else
+				usersFileOptions = usersFileOptions + [
+					{
+						"color": colors.orange,
+						"text": "Next user ( No next )",
+						"handler": function()
+						end function
+					}
+				]
+			end if
+		end while
+
+		clear_screen()
+		optionsHandler(usersFileOptions, colors.green + "Select option : ")
+	else
+		print(colors.red + "Not permission")
+	end if
+end function

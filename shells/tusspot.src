@@ -23,6 +23,9 @@ globals.memoryWeak = null
 globals.unsecZoneIndex = 0
 globals.services = null
 globals.serviceIndex = 0
+globals._overflow = null
+globals.host_computer = host_computer
+globals.userIndex = 0
 
 mainMenu = function()
 	clear_screen()
@@ -436,10 +439,10 @@ libAttackHandler = function(service)
 									else
 										optArgs = injected_password
 									end if
-									print(memoryWeakIndex)
-									print(unsecZone)
-									print(optArgs)
-									overflow = selected_service.metalib.overflow(memoryWeakKey, unsecZone, optArgs)
+
+									overflowHandler(
+										selected_service.metalib.overflow(memoryWeakKey, unsecZone, optArgs)
+									)
 								end function
 							}
 						]
@@ -494,6 +497,183 @@ libAttackHandler = function(service)
 		clear_screen()
 		optionsHandler(memoryWeaksOptions, colors.green + "Choose Memory Weaks : ")
 	end while
+end function
+
+overflowHandler = function(_overflow)
+	globals._overflow = _overflow
+
+	if typeof(_overflow) ==  "shell" then
+		overflowShellHandler()
+	else if typeof(_overflow) ==  "computer" then
+		overflowComputerHandler()
+	else if typeof(_overflow) ==  "file" then
+		overflowFileHandler()
+	else if typeof(_overflow) ==  "number" then
+		overflowNumberHandler()
+	else if typeof(_overflow) ==  "string" then
+		overflowStringHandler()
+	end if
+end function
+
+overflowShellHandler = function()
+	overflowShellOptions = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				libAttackHandler(globals.selected_service)
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "Start Terminal",
+			"handler": function()
+				globals._overflow.start_terminal()
+			end function
+		}
+	]
+
+	optionsHandler(overflowShellOptions, colors.green + "Select action : ")
+end function
+
+overflowComputerHandler = function()
+	overflowHandlerOptions = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				libAttackHandler(globals.selected_service)
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "Display Folder content",
+			"handler": function()
+				folderPath = user_input("Select File Path :")
+				showFolder(folderPath)
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "Display File content",
+			"handler": function()
+				filePath = user_input("Select File Path :")
+				showFile(filePath)
+			end function
+		},
+		{
+			"color": colors.green,
+			"text": "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)",
+			"handler": function()
+				filePath = user_input("Select File Path :")
+				decryptUserFile(filePath)
+			end function
+		}
+	]
+
+	globals.passwdFile = globals._overflow.File("/etc/passwd")
+	if passwdFile.has_permission("r") then
+		overflowHandlerOptions = overflowHandlerOptions + [
+			{
+				"color": colors.green,
+				"text": "Display Passwd File",
+				"handler": function()
+					showFile(globals.passwdFile)
+				end function
+			},
+			{
+				"color": colors.green,
+				"text": "Display Decrypted Passwd File",
+				"handler": function()
+					decryptUserFile(globals.passwdFile)
+				end function
+			}
+		]
+	end if
+
+	optionsHandler(overflowHandlerOptions, colors.green + "Select action : ")
+end function
+
+overflowFileHandler = function()
+	overflowFileOptions = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				libAttackHandler(globals.selected_service)
+			end function
+		},
+	]
+	print(globals._overflow)
+	if globals._overflow.has_permission("r") then
+		if globals._overflow.is_folder then
+			overflowFileOptions = overflowFileOptions + [
+				{
+					"color": colors.green,
+					"text": "Display Folder content",
+					"handler": function()
+						folderPath = user_input("Select File Path :")
+						showFolder(folderPath)
+					end function
+				}
+			]
+		else
+			overflowFileOptions = overflowFileOptions + [
+				{
+					"color": colors.green,
+					"text": "Display File content",
+					"handler": function()
+						filePath = user_input("Select File Path :")
+						showFile(filePath)
+					end function
+				},
+				{
+					"color": colors.green,
+					"text": "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)",
+					"handler": function()
+						filePath = user_input("Select File Path :")
+						decryptUserFile(filePath)
+					end function
+				}
+			]
+		end if
+	else
+		print(colors.red + "No permission")
+	end if
+
+	optionsHandler(overflowFileOptions, colors.green + "Select action : ")
+end function
+
+overflowNumberHandler = function()
+	overflowNumberOptions = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				libAttackHandler(globals.selected_service)
+			end function
+		},
+	]
+	
+	print(globals._overflow)
+
+	optionsHandler(overflowNumberOptions, colors.green + "Select action : ")
+end function
+
+overflowStringHandler = function()
+	overflowStringOptions = [
+		{
+			"color": colors.green,
+			"text": "Back",
+			"handler": function()
+				libAttackHandler(globals.selected_service)
+			end function
+		},
+	]
+
+	print(globals._overflow)
+
+	optionsHandler(overflowStringOptions, colors.green + "Select action : ")
 end function
 
 mainMenu()

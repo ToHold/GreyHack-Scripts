@@ -1,21 +1,32 @@
-optionsHandler = function(options, inputText)
+OptionsHandler = {
+	"options": [],
+	"inputText": ""
+}
+
+OptionsHandler.construct = function(options, inputText)
+	if options then self.options = options
+	if inputText then  self.inputText = inputText
+	return self
+end function
+
+OptionsHandler.display = function
 	i = 0
-	for option in options
+	for option in self.options
 		print(option.color + i + ". " + option.text)
 		i += 1
 	end for
 
 	input_ok = false
 	while not input_ok
-		input = user_input(inputText)
+		input = user_input(self.inputText)
 		if input.len == 0 or not input.to_int isa number then
 			print("Invalid input")
-		else if input.to_int > options.len or input.to_int < 0 then
+		else if input.to_int > self.options.len or input.to_int < 0 then
 			print("Invalid input")
 		else 
 			input_ok = true
 			i = 0
-			for option in options
+			for option in self.options
 				if i == input.to_int then
 					option.handler()
 				end if
@@ -23,4 +34,18 @@ optionsHandler = function(options, inputText)
 			end for
 		end if
 	end while
+end function
+
+OptionHandler = {
+	"color": colors.green,
+	"text": ""
+}
+
+OptionHandler.construct = function(color, text, handlerParam)
+	if color then self.color = color
+	if text then self.text = text
+	return self
+end function
+
+OptionHandler.handler = function
 end function

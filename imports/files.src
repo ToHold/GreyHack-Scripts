@@ -17,10 +17,10 @@ showFolder = function(folder_to_show)
 		print(colors.red + "Not a folder")
 	else
 		for folderIn in folder_to_show.get_folders()
-			print("Folder : " + folderIn)
+			print("Folder : " + folderIn.name)
 		end for
 		for fileIn in folder_to_show.get_files()
-			print("File : " + fileIn)
+			print("File : " + fileIn.name)
 		end for
 	end if
 end function
@@ -38,74 +38,75 @@ decryptUserFile = function(file_user)
 			username = splitedUser[0]
 			passHash = splitedUser[1]
 
+			backOption = new OptionHandler
+			backOption.construct(colors.green, "Back")
+			backOption.handler = function()
+				overflowHandler()
+			end function
+
 			usersFileOptions = [
-				{
-					"color": colors.green,
-					"text": "Back",
-					"handler": function()
-						clear_screen()
-						overflowHandler()
-					end function
-				}
+				backOption
 			]
+
 			if userIndex != 0 then
+				previousOption = new OptionHandler
+				previousOption.construct(colors.green, "Previous user ( " + users[userIndex - 1].split(":")[0] + " )")
+				previousOption.handler = function()
+					globals.userIndex = userIndex - 1
+				end function
+
 				usersFileOptions = usersFileOptions + [
-					{
-						"color": colors.green,
-						"text": "Previous user ( " + users[userIndex - 1].split(":")[0] + " )",
-						"handler": function()
-							globals.userIndex = userIndex - 1
-						end function
-					}
+					previousOption
 				]
 			else
+				previousOption = new OptionHandler
+				previousOption.construct(colors.orange, "Previous user ( No previous )")
+				previousOption.handler = function()
+				end function
+
 				usersFileOptions = usersFileOptions + [
-					{
-						"color": colors.orange,
-						"text": "Previous user ( No previous )",
-						"handler": function()
-						end function
-					}
+					previousOption
 				]
 			end if
 
+			selectOption = new OptionHandler
+			selectOption.construct(colors.green, "Select user ( " + username + " )")
+			selectOption.handler = function()
+				password = crypto.decipher(passHash)
+				print("User : " + username)
+				print("Password : " + password)
+			end function
+
 			usersFileOptions = usersFileOptions + [
-				{
-					"color": colors.green,
-					"text": "Select user ( " + username + " )",
-					"handler": function()
-						password = crypto.decipher(passHash)
-						clear_screen()
-						print("User : " + username)
-						print("Password : " + password)
-					end function
-				}
+				selectOption
 			]
 
 			if userIndex != users.len - 1 then
+				nextOption = new OptionHandler
+				nextOption.construct(colors.green, "Next user ( " + users[userIndex + 1].split(":")[0] + " )")
+				nextOption.handler = function()
+					globals.userIndex = userIndex + 1
+				end function
+
 				usersFileOptions = usersFileOptions + [
-					{
-						"color": colors.green,
-						"text": "Next user ( " + users[userIndex + 1].split(":")[0] + " )",
-						"handler": function()
-							globals.userIndex = userIndex + 1
-						end function
-					}
+					nextOption
 				]
 			else
+				nextOption = new OptionHandler
+				nextOption.construct(colors.orange, "Next user ( No next )")
+				nextOption.handler = function()
+				end function
+
 				usersFileOptions = usersFileOptions + [
-					{
-						"color": colors.orange,
-						"text": "Next user ( No next )",
-						"handler": function()
-						end function
-					}
+					nextOption
 				]
 			end if
 		end while
 
-		clear_screen()
-		optionsHandler(usersFileOptions, colors.green + "Select option : ")
+		optionsHandler = new OptionsHandler
+		optionsHandler.construct(usersFileOptions, colors.green + "Select option : ")
+
+		optionsHandler.display()
 	else
 		print(colors.red + "Not permission")
 	end if

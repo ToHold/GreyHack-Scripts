@@ -3,6 +3,7 @@ import_code("../imports/nmap.src")
 import_code("../imports/checks.src")
 import_code("../imports/scanlib.src")
 import_code("../imports/options.src")
+import_code("../imports/files.src")
 
 metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then metaxploit = include_lib(program_path() + "metaxploit.so")
@@ -38,43 +39,46 @@ mainMenu = function()
 	print(colors.orange + "  |_|     \_,_| /__/ /__/ | .__/  \___/  \__|  ")
 	print(colors.orange + "                          |_|                  ")
 
+	exitOption = new OptionHandler
+	exitOption.construct(colors.green, "Exit")
+	exitOption.handler = function()
+		clear_screen()
+		exit(colors.orange + "Bye Bye")
+	end function
+
+	routerOption = new OptionHandler
+	routerOption.construct(colors.green, "ROUTER")
+	routerOption.handler = function()
+		globals.MODE = "ROUTER"
+		setterMenu()
+	end function
+
+	deviceOption = new OptionHandler
+	deviceOption.construct(colors.green, "DEVICE")
+	deviceOption.handler = function()
+		globals.MODE = "DEVICE"
+		setterMenu()
+	end function
+
+	localOption = new OptionHandler
+	localOption.construct(colors.green, "LOCAL")
+	localOption.handler = function()
+		globals.MODE = "LOCAL"
+		setterMenu()
+	end function
+
 	// Sets Mode Web (Router) / Lan (remote lan PC) / Local (this PC)
 	options = [
-		{
-			"color": colors.green,
-			"text": "Exit",
-			"handler": function()
-				clear_screen()
-				exit(colors.orange + "Bye Bye")
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "ROUTER",
-			"handler": function()
-				globals.MODE = "ROUTER"
-				setterMenu()
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "DEVICE",
-			"handler": function()
-				globals.MODE = "DEVICE"
-				setterMenu()
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "LOCAL",
-			"handler": function()
-				globals.MODE = "LOCAL"
-				setterMenu()
-			end function
-		}
+		exitOption,
+		routerOption,
+		deviceOption,
+		localOption
 	]
 
-	optionsHandler(options, colors.green + "Select Mode : ")
+	mainMenuOptionsHandler = new OptionsHandler
+	mainMenuOptionsHandler.construct(options, colors.green + "Select Mode : ")
+
+	mainMenuOptionsHandler.display()
 end function
 
 setterMenu = function()
@@ -89,418 +93,452 @@ setterMenu = function()
 
 	if not MODE then mainMenu()
 
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		mainMenu()
+	end function
+
 	options = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				mainMenu()
-			end function
-		}
+		backOption
 	]
 
 	if MODE == "ROUTER" or MODE == "DEVICE" then
 		print(colors.yellow + "At least IP to attack or Router IP is needed")
+
+		routerIPOption = new OptionHandler
+		routerIPOption.construct(colors.green, "Set Router IP" + getCurrentIPSet(victim_router_ip))
+		routerIPOption.handler = function()
+			while true
+				next = true
+				victim_router_ip = user_input(colors.green + "Choose Router IP (press enter to skip) : ")
+
+				if victim_router_ip.len == 0 then 
+					victim_router_ip = null
+					break
+				end if
+				if victim_router_ip and not isIP(victim_router_ip) then
+					print(colors.yellow + "Invalid Router IP")
+					next = false
+				end if
+				if victim_router_ip and not isRouter(victim_router_ip) then
+					print(colors.yellow + "Router not found")
+					next = false
+				end if
+
+				globals.victim_router_ip = victim_router_ip
+
+				if next then break
+			end while
+			// stay in setterMenu
+			setterMenu()
+		end function
+
+		attackIPOption = new OptionHandler
+		attackIPOption.construct(colors.green, "Set IP to attack" + getCurrentIPSet(victim_ip))
+		attackIPOption.handler = function()
+			while true
+				next = true
+				victim_ip = user_input(colors.green + "Choose IP to attack (press enter to skip) : ")
+
+				if victim_ip.len == 0 then 
+				victim_ip = null
+					break
+				end if
+				if victim_ip and not isIP(victim_router_ip) then
+					print(colors.yellow + "Invalid IP")
+					next = false
+				end if
+
+				globals.victim_ip = victim_ip
+
+				if next then break
+			end while
+			// stay in setterMenu
+			setterMenu()
+		end function
+
 		options = options + [
-			{
-				"color": colors.green,
-				"text": "Set Router IP" + getCurrentIPSet(victim_router_ip),
-				"handler": function()
-					while true
-						next = true
-						victim_router_ip = user_input(colors.green + "Choose Router IP (press enter to skip) : ")
-		
-						if victim_router_ip.len == 0 then 
-							victim_router_ip = null
-							break
-						end if
-						if victim_router_ip and not isIP(victim_router_ip) then
-							print(colors.yellow + "Invalid Router IP")
-							next = false
-						end if
-						if victim_router_ip and not isRouter(victim_router_ip) then
-							print(colors.yellow + "Router not found")
-							next = false
-						end if
-		
-						globals.victim_router_ip = victim_router_ip
-		
-						if next then break
-					end while
-					// stay in setterMenu
-					setterMenu()
-				end function
-			},
-			{
-				"color": colors.green,
-				"text": "Set IP to attack" + getCurrentIPSet(victim_ip),
-				"handler": function()
-					while true
-						next = true
-						victim_ip = user_input(colors.green + "Choose IP to attack (press enter to skip) : ")
-		
-						if victim_ip.len == 0 then 
-						victim_ip = null
-							break
-						end if
-						if victim_ip and not isIP(victim_router_ip) then
-							print(colors.yellow + "Invalid IP")
-							next = false
-						end if
-		
-						globals.victim_ip = victim_ip
-		
-						if next then break
-					end while
-					// stay in setterMenu
-					setterMenu()
-				end function
-			}
+			routerIPOption,
+			attackIPOption
 		]
 	end if
 
 	if MODE != "ROUTER" then
-		options = options + [
-			{
-				"color": colors.green,
-				"text": "Set Password to inject" + getCurrentIPSet(injected_password),
-				"handler": function()
-					while true
-						next = true
-						injected_password = user_input(colors.green + "Choose Password to inject (press enter to skip) : ")
-		
-						if injected_password.len == 0 then 
-							injected_password = null
-							break
-						end if
-		
-						globals.injected_password = injected_password
+		passInjectOption = new OptionHandler
+		passInjectOption.construct(colors.green, "Set Password to inject" + getCurrentIPSet(injected_password))
+		passInjectOption.handler = function()
+			while true
+				next = true
+				injected_password = user_input(colors.green + "Choose Password to inject (press enter to skip) : ")
 
-						if next then break
-					end while
-					// stay in setterMenu
-					setterMenu()
-				end function
-			}
+				if injected_password.len == 0 then 
+					injected_password = null
+					break
+				end if
+
+				globals.injected_password = injected_password
+
+				if next then break
+			end while
+			// stay in setterMenu
+			setterMenu()
+		end function
+
+		options = options + [
+			passInjectOption
 		]
 	end if
 
-	options = options + [
-		{
-		"color": colors.green,
-		"text": "Continue",
-		"handler": function()
-			if MODE == "LOCAL" then
+	continueOption = new OptionHandler
+	continueOption.construct(colors.green, "Continue")
+	continueOption.handler = function()
+		if MODE == "LOCAL" then
+			clear_screen()
+			featuresMenu()
+		else
+			if victim_ip or victim_router_ip then 
 				clear_screen()
-				featuresMenu()
+				featuresMenu() 
 			else
-				if victim_ip or victim_router_ip then 
-					clear_screen()
-					featuresMenu() 
-				else
-					setterMenu()
-				end if
+				setterMenu()
 			end if
-		end function
-		}
+		end if
+	end function
+
+	options = options + [
+		continueOption
 	]
 
-	optionsHandler(options, colors.green + "Select a Setter : ")
+	setterMenuOptionsHandler = new OptionsHandler
+	setterMenuOptionsHandler.construct(options, colors.green + "Select a Setter or Continue : ")
+
+	setterMenuOptionsHandler.display()
 end function
 
 featuresMenu = function()
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		clear_screen()
+		setterMenu()
+	end function
+
+	nmapOption = new OptionHandler
+	nmapOption.construct(colors.green, "NMAP")
+	nmapOption.handler = function()
+		if MODE == "ROUTER" or MODE == "DEVICE" then
+			nmap(MODE, victim_ip, victim_router_ip)
+		else
+			nmap(MODE)
+		end if
+
+		// stay in attack menu
+		featuresMenu()
+	end function
+
+	attackOption = new OptionHandler
+	attackOption.construct(colors.green, "Attack")
+	attackOption.handler = function()
+		services = []
+		if MODE == "ROUTER" then 
+			if victim_router_ip and victim_ip then
+				routedServices = getRoutedServices(get_router(victim_router_ip), victim_ip, true)
+				services = services + routedServices
+			else if victim_router_ip and not victim_ip then
+				routedServices = getRoutedServices(get_router(victim_router_ip), null, true)
+				services = services + routedServices
+			else if victim_ip then
+				routedServices = getRoutedServices(get_router(), victim_ip, true)
+				services = services + routedServices
+			end if
+		end if
+		if MODE == "DEVICE" then 
+			if victim_router_ip and victim_ip then
+				deviceServices = getDeviceServices(get_router(victim_router_ip), victim_ip, true)
+				services = services + deviceServices
+			else if victim_router_ip and not victim_ip then
+				deviceServices = getDeviceServices(get_router(victim_router_ip), null, true)
+				services = services + deviceServices
+			else if victim_ip then
+				deviceServices = getDeviceServices(get_router(), victim_ip, true)
+				services = services + deviceServices
+			end if
+		else if MODE == "LOCAL" then  
+			localServices = getLocalServices(get_router(), true)
+			services = services + localServices
+		end if
+
+		globals.services = services
+		servicesSelectMenu()
+
+		// stay in attack menu
+		featuresMenu()
+	end function
+
 	options = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				clear_screen()
-				setterMenu()
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "NMAP",
-			"handler": function()
-				if MODE == "ROUTER" or MODE == "DEVICE" then
-					nmap(MODE, victim_ip, victim_router_ip)
-				else
-					nmap(MODE)
-				end if
-
-				// stay in attack menu
-				featuresMenu()
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "Attack",
-			"handler": function()
-				services = []
-				if MODE == "ROUTER" then 
-					if victim_router_ip and victim_ip then
-						routedServices = getRoutedServices(get_router(victim_router_ip), victim_ip, true)
-						services = services + routedServices
-					else if victim_router_ip and not victim_ip then
-						routedServices = getRoutedServices(get_router(victim_router_ip), null, true)
-						services = services + routedServices
-					else if victim_ip then
-						routedServices = getRoutedServices(get_router(), victim_ip, true)
-						services = services + routedServices
-					end if
-				end if
-				if MODE == "DEVICE" then 
-					if victim_router_ip and victim_ip then
-						deviceServices = getDeviceServices(get_router(victim_router_ip), victim_ip, true)
-						services = services + deviceServices
-					else if victim_router_ip and not victim_ip then
-						deviceServices = getDeviceServices(get_router(victim_router_ip), null, true)
-						services = services + deviceServices
-					else if victim_ip then
-						deviceServices = getDeviceServices(get_router(), victim_ip, true)
-						services = services + deviceServices
-					end if
-				else if MODE == "LOCAL" then  
-					localServices = getLocalServices(get_router(), true)
-					services = services + localServices
-				end if
-
-				globals.services = services
-				servicesSelectMenu()
-
-				// stay in attack menu
-				featuresMenu()
-			end function
-		}
+		backOption,
+		nmapOption,
+		attackOption
 	]
 
-	optionsHandler(options, colors.green + "Choose option : ")
+	featuresMenuOptionsHandler = new OptionsHandler
+	featuresMenuOptionsHandler.construct(options, colors.green + "Choose option : ")
+
+	featuresMenuOptionsHandler.display()
 end function
 
 servicesSelectMenu = function()
 	if globals.serviceIndex > services.len then globals.serviceIndex = 0
 	while serviceIndex < services.len
+		backOption = new OptionHandler
+		backOption.construct(colors.green, "Back")
+		backOption.handler = function()
+			clear_screen()
+			featuresMenu()
+		end function
+
 		servicesOptions = [
-			{
-				"color": colors.green,
-				"text": "Back",
-				"handler": function()
-					clear_screen()
-					featuresMenu()
-				end function
-			}
+			backOption
 		]
+
 		if serviceIndex != 0 then
+			previousOption = new OptionHandler
+			previousOption.construct(colors.green, "Previous service ( host: " + services[serviceIndex - 1].ip + " service: " + services[serviceIndex - 1].name + " v." + services[serviceIndex - 1].version + " )")
+			previousOption.handler = function()
+				globals.serviceIndex = serviceIndex - 1
+			end function
+
 			servicesOptions = servicesOptions + [
-				{
-					"color": colors.green,
-					"text": "Previous service ( host: " + services[serviceIndex - 1].ip + " service: " + services[serviceIndex - 1].name + " v." + services[serviceIndex - 1].version + " )",
-					"handler": function()
-						globals.serviceIndex = serviceIndex - 1
-					end function
-				}
+				previousOption
 			]
 		else
+			previousOption = new OptionHandler
+			previousOption.construct(colors.orange, "Previous service ( No previous )")
+			previousOption.handler = function()
+			end function
+
 			servicesOptions = servicesOptions + [
-				{
-					"color": colors.orange,
-					"text": "Previous service ( No previous )",
-					"handler": function()
-					end function
-				}
+				previousOption
 			]
 		end if
 
+		selectOption = new OptionHandler
+		selectOption.construct(colors.green, "Select service ( host: " + services[serviceIndex].ip + " service: " + services[serviceIndex].name + " v." + services[serviceIndex].version + " )")
+		selectOption.handler = function()
+			globals.selected_service = services[serviceIndex]
+			libAttackHandler(selected_service)
+		end function
+
 		servicesOptions = servicesOptions + [
-				{
-					"color": colors.green,
-					"text": "Select service ( host: " + services[serviceIndex].ip + " service: " + services[serviceIndex].name + " v." + services[serviceIndex].version + " )",
-					"handler": function()
-						globals.selected_service = services[serviceIndex]
-						libAttackHandler(selected_service)
-					end function
-				}
-			]
+			selectOption
+		]
 
 		if serviceIndex != services.len - 1 then
+			nextOption = new OptionHandler
+			nextOption.construct(colors.green, "Next service ( host: " + services[serviceIndex + 1].ip + " service: " + services[serviceIndex + 1].name + " v." + services[serviceIndex + 1].version + " )")
+			nextOption.handler = function()
+				globals.serviceIndex = serviceIndex + 1
+			end function
+
 			servicesOptions = servicesOptions + [
-				{
-					"color": colors.green,
-					"text": "Next service ( host: " + services[serviceIndex + 1].ip + " service: " + services[serviceIndex + 1].name + " v." + services[serviceIndex + 1].version + " )",
-					"handler": function()
-						globals.serviceIndex = serviceIndex + 1
-					end function
-				}
+				nextOption
 			]
 		else
+			nextOption = new OptionHandler
+			nextOption.construct(colors.orange, "Next service ( No next )")
+			nextOption.handler = function()
+			end function
+
 			servicesOptions = servicesOptions + [
-				{
-					"color": colors.orange,
-					"text": "Next service ( No next )",
-					"handler": function()
-					end function
-				}
+				nextOption
 			]
 		end if
 
 		clear_screen()
-		optionsHandler(servicesOptions, colors.green + "Choose Service : ")
+		servicesSelectMenuOptionsHandler = new OptionsHandler
+		servicesSelectMenuOptionsHandler.construct(servicesOptions, colors.green + "Choose Service : ")
+
+		servicesSelectMenuOptionsHandler.display()
 	end while
 end function
 
 libAttackHandler = function(service)
-	netSession = metaxploit.net_use(service.ip, service.port)
+	if MODE == "ROUTER" then 
+		netSession = metaxploit.net_use(service.publicIP, service.port.port_number())
+	else
+		netSession = metaxploit.net_use(service.ip, service.port.port_number())
+	end if
 
 	service.metalib = netSession.dump_lib()
 	service.lib = scanlib(service, metaxploit)
 
 	if globals.memoryWeakIndex > selected_service.lib.memoryWeaks.len then globals.memoryWeakIndex = 0
 	while memoryWeakIndex < selected_service.lib.memoryWeaks.len
+		backOption = new OptionHandler
+		backOption.construct(colors.green, "Back")
+		backOption.handler = function()
+			servicesSelectMenu()
+		end function
+
 		memoryWeaksOptions = [
-			{
-				"color": colors.green,
-				"text": "Back",
-				"handler": function()
-					servicesSelectMenu()
-				end function
-			}
+			backOption
 		]
 
 		if memoryWeakIndex != 0 then
+			previousOption = new OptionHandler
+			previousOption.construct(colors.green, "Previous Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex - 1] +" )")
+			previousOption.handler = function()
+				globals.memoryWeakIndex = memoryWeakIndex - 1
+			end function
+
 			memoryWeaksOptions = memoryWeaksOptions + [
-				{
-					"color": colors.green,
-					"text": "Previous Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex - 1] +" )",
-					"handler": function()
-						globals.memoryWeakIndex = memoryWeakIndex - 1
-					end function
-				}
+				previousOption
 			]
 		else
+			previousOption = new OptionHandler
+			previousOption.construct(colors.orange, "Previous Memory Weaks ( No previous )")
+			previousOption.handler = function()
+			end function
+
 			memoryWeaksOptions = memoryWeaksOptions + [
-				{
-					"color": colors.orange,
-					"text": "Previous Memory Weaks ( No previous )",
-					"handler": function()
-					end function
-				}
+				previousOption
 			]
 		end if
 
-		memoryWeaksOptions = memoryWeaksOptions + [
-			{
-				"color": colors.green,
-				"text": "Select current Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex] +" )",
-				"handler": function()
-					globals.memoryWeakKey = selected_service.lib.memoryWeaks.indexes[memoryWeakIndex]
-					globals.memoryWeak = selected_service.lib.memoryWeaks[memoryWeakKey]
-					
-					if globals.unsecZoneIndex > selected_service.lib.memoryWeaks.len then globals.unsecZoneIndex = 0
-					while unsecZoneIndex < memoryWeak.len
-						unsecZoneOptions = []
-						unsecZoneOptions = [
-							{
-								"color": colors.green,
-								"text": "Back",
-								"handler": function()
-								globals.unsecZoneIndex = memoryWeak.len
-								end function
-							}
-						]
-						if unsecZoneIndex != 0 then
-							unsecZoneOptions = unsecZoneOptions + [
-								{
-									"color": colors.green,
-									"text": "Previous Unsecured Zone ( " + memoryWeak[unsecZoneIndex - 1] +" )",
-									"handler": function()
-										globals.unsecZoneIndex = unsecZoneIndex - 1
-									end function
-								}
-							]
-						else
-							unsecZoneOptions = unsecZoneOptions + [
-								{
-									"color": colors.orange,
-									"text": "Previous Unsecured Zone ( No previous )",
-									"handler": function()
-									end function
-								}
-							]
-						end if
-						globals.unsecZone = memoryWeak[unsecZoneIndex]
-						unsecZoneOptions = unsecZoneOptions + [
-							{
-								"color": colors.green,
-								"text": "Select current Unsecured Zone ( " + unsecZone +" )",
-								"handler": function()
-									optArgs = null
-									if MODE == "ROUTER" then
-										optArgs = victim_ip
-									else
-										optArgs = injected_password
-									end if
+		selectOption = new OptionHandler
+		selectOption.construct(colors.green, "Select current Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex] +" )")
+		selectOption.handler = function()
+			globals.memoryWeakKey = selected_service.lib.memoryWeaks.indexes[memoryWeakIndex]
+			globals.memoryWeak = selected_service.lib.memoryWeaks[memoryWeakKey]
+			unsecZoneHandler()
+		end function
 
-									overflowHandler(
-										selected_service.metalib.overflow(memoryWeakKey, unsecZone, optArgs)
-									)
-								end function
-							}
-						]
-						if unsecZoneIndex != memoryWeak.len - 1 then
-							unsecZoneOptions = unsecZoneOptions + [
-								{
-									"color": colors.green,
-									"text": "Next Unsecured Zone ( " + memoryWeak[unsecZoneIndex + 1] +" )",
-									"handler": function()
-										globals.unsecZoneIndex = unsecZoneIndex + 1
-									end function
-								}
-							]
-						else
-							unsecZoneOptions = unsecZoneOptions + [
-								{
-									"color": colors.orange,
-									"text": "Next Unsecured Zone ( No next )",
-									"handler": function()
-									end function
-								}
-							]
-						end if
-						clear_screen()
-						optionsHandler(unsecZoneOptions, colors.green + "Choose Unsecured Zone : ")
-					end while
-				end function
-			}
+		memoryWeaksOptions = memoryWeaksOptions + [
+			selectOption
 		]
 
 		if memoryWeakIndex != service.lib.memoryWeaks.len - 1 then
+			nextOption = new OptionHandler
+			nextOption.construct(colors.green, "Next Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex + 1] +" )")
+			nextOption.handler = function()
+				globals.memoryWeakIndex = memoryWeakIndex + 1
+			end function
+
 			memoryWeaksOptions = memoryWeaksOptions + [
-			{
-				"color": colors.green,
-				"text": "Next Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex + 1] +" )",
-				"handler": function()
-					globals.memoryWeakIndex = memoryWeakIndex + 1
-				end function
-			}
-		]
+				nextOption
+			]
 		else
+			nextOption = new OptionHandler
+			nextOption.construct(colors.orange, "Next Memory Weaks ( No next )")
+			nextOption.handler = function()
+			end function
+
 			memoryWeaksOptions = memoryWeaksOptions + [
-				{
-					"color": colors.orange,
-					"text": "Next Memory Weaks ( No next )",
-					"handler": function()
-					end function
-				}
+				nextOption
 			]
 		end if
 
-		clear_screen()
-		optionsHandler(memoryWeaksOptions, colors.green + "Choose Memory Weaks : ")
+		libAttackHandlerOptionsHandler = new OptionsHandler
+		libAttackHandlerOptionsHandler.construct(memoryWeaksOptions, colors.green + "Choose Memory Weaks : ")
+
+		libAttackHandlerOptionsHandler.display()
+	end while
+end function
+
+unsecZoneHandler = function()
+	if globals.unsecZoneIndex > selected_service.lib.memoryWeaks.len then globals.unsecZoneIndex = 0
+	while unsecZoneIndex < memoryWeak.len
+		backOption = new OptionHandler
+		backOption.construct(colors.green, "Back")
+		backOption.handler = function()
+			libAttackHandler()
+		end function
+
+		unsecZoneOptions = [
+			backOption
+		]
+
+		if unsecZoneIndex != 0 then
+			previousOption = new OptionHandler
+			previousOption.construct(colors.green, "Previous Unsecured Zone ( " + memoryWeak[unsecZoneIndex - 1] +" )")
+			previousOption.handler = function()
+				globals.unsecZoneIndex = unsecZoneIndex - 1
+			end function
+
+			unsecZoneOptions = unsecZoneOptions + [
+				previousOption
+			]
+		else
+			previousOption = new OptionHandler
+			previousOption.construct(colors.orange, "Previous Unsecured Zone ( No previous )")
+			previousOption.handler = function()
+			end function
+
+			unsecZoneOptions = unsecZoneOptions + [
+				previousOption
+			]
+		end if
+
+		globals.unsecZone = memoryWeak[unsecZoneIndex]
+
+		selectOption = new OptionHandler
+		selectOption.construct(colors.green, "Select current Unsecured Zone ( " + unsecZone +" )")
+		selectOption.handler = function()
+			optArgs = null
+			if MODE == "ROUTER" then
+				optArgs = victim_ip
+			else
+				optArgs = injected_password
+			end if
+
+			if optArgs then
+				overflowHandler(
+					selected_service.metalib.overflow(memoryWeakKey, unsecZone, optArgs)
+				)
+			else
+				overflowHandler(
+					selected_service.metalib.overflow(memoryWeakKey, unsecZone)
+				)
+			end if
+		end function
+
+		unsecZoneOptions = unsecZoneOptions + [
+			selectOption
+		]
+
+		if unsecZoneIndex != memoryWeak.len - 1 then
+			nextOption = new OptionHandler
+			nextOption.construct(colors.green, "Next Unsecured Zone ( " + memoryWeak[unsecZoneIndex + 1] +" )")
+			nextOption.handler = function()
+				globals.unsecZoneIndex = unsecZoneIndex + 1
+			end function
+
+			unsecZoneOptions = unsecZoneOptions + [
+				nextOption
+			]
+		else
+			nextOption = new OptionHandler
+			nextOption.construct(colors.orange, "Next Unsecured Zone ( No next )")
+			nextOption.handler = function()
+			end function
+
+			unsecZoneOptions = unsecZoneOptions + [
+				nextOption
+			]
+		end if
+
+		unsecZoneOptionsHandler = new OptionsHandler
+		unsecZoneOptionsHandler.construct(unsecZoneOptions, colors.green + "Choose Unsecured Zone : ")
+
+		unsecZoneOptionsHandler.display()
 	end while
 end function
 
 overflowHandler = function(_overflow)
 	globals._overflow = _overflow
+
+	print("Result Type : " + typeof(_overflow))
 
 	if typeof(_overflow) ==  "shell" then
 		overflowShellHandler()
@@ -516,164 +554,189 @@ overflowHandler = function(_overflow)
 end function
 
 overflowShellHandler = function()
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		unsecZoneHandler(globals.selected_service)
+	end function
+
+	startTerminalOption = new OptionHandler
+	startTerminalOption.construct(colors.green, "Start Terminal")
+	startTerminalOption.handler = function()
+		globals._overflow.start_terminal()
+
+		overflowShellHandler()
+	end function
+
 	overflowShellOptions = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				libAttackHandler(globals.selected_service)
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "Start Terminal",
-			"handler": function()
-				globals._overflow.start_terminal()
-			end function
-		}
+		backOption,
+		startTerminalOption
 	]
 
-	optionsHandler(overflowShellOptions, colors.green + "Select action : ")
+	optionsHandler = new OptionsHandler
+	optionsHandler.construct(overflowShellOptions, colors.green + "Select action : ")
+
+	optionsHandler.display()
 end function
 
 overflowComputerHandler = function()
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		unsecZoneHandler(globals.selected_service)
+	end function
+
+	displayFolderOption = new OptionHandler
+	displayFolderOption.construct(colors.green, "Display Folder content")
+	displayFolderOption.handler = function()
+		folderPath = user_input("Select File Path :")
+		showFolder(globals._overflow.File(folderPath))
+		overflowComputerHandler()
+	end function
+
+	displayFileOption = new OptionHandler
+	displayFileOption.construct(colors.green, "Display File content")
+	displayFileOption.handler = function()
+		filePath = user_input("Select File Path :")
+		showFile(globals._overflow.File(filePath))
+		overflowComputerHandler()
+	end function
+
+	displayDecryptedFileOption = new OptionHandler
+	displayDecryptedFileOption.construct(colors.green, "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)")
+	displayDecryptedFileOption.handler = function()
+		filePath = user_input("Select File Path :")
+		decryptUserFile(globals._overflow.File(filePath))
+		overflowComputerHandler()
+	end function
+
 	overflowHandlerOptions = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				libAttackHandler(globals.selected_service)
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "Display Folder content",
-			"handler": function()
-				folderPath = user_input("Select File Path :")
-				showFolder(folderPath)
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "Display File content",
-			"handler": function()
-				filePath = user_input("Select File Path :")
-				showFile(filePath)
-			end function
-		},
-		{
-			"color": colors.green,
-			"text": "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)",
-			"handler": function()
-				filePath = user_input("Select File Path :")
-				decryptUserFile(filePath)
-			end function
-		}
+		backOption,
+		displayFolderOption,
+		displayFileOption,
+		displayDecryptedFileOption
 	]
 
 	globals.passwdFile = globals._overflow.File("/etc/passwd")
 	if passwdFile.has_permission("r") then
+		displayPasswdOption = new OptionHandler
+		displayPasswdOption.construct(colors.green, "Display Passwd File")
+		displayPasswdOption.handler = function()
+			showFile(globals.passwdFile)
+			overflowComputerHandler()
+		end function
+
+		displayDecryptedPasswdOption = new OptionHandler
+		displayDecryptedPasswdOption.construct(colors.green, "Display Decrypted Passwd File")
+		displayDecryptedPasswdOption.handler = function()
+			decryptUserFile(globals.passwdFile)
+			overflowComputerHandler()
+		end function
+
 		overflowHandlerOptions = overflowHandlerOptions + [
-			{
-				"color": colors.green,
-				"text": "Display Passwd File",
-				"handler": function()
-					showFile(globals.passwdFile)
-				end function
-			},
-			{
-				"color": colors.green,
-				"text": "Display Decrypted Passwd File",
-				"handler": function()
-					decryptUserFile(globals.passwdFile)
-				end function
-			}
+			displayPasswdOption,
+			displayDecryptedPasswdOption
 		]
 	end if
 
-	optionsHandler(overflowHandlerOptions, colors.green + "Select action : ")
+	optionsHandler = new OptionsHandler
+	optionsHandler.construct(overflowHandlerOptions, colors.green + "Select action : ")
+
+	optionsHandler.display()
 end function
 
 overflowFileHandler = function()
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		unsecZoneHandler(globals.selected_service)
+	end function
+
 	overflowFileOptions = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				libAttackHandler(globals.selected_service)
-			end function
-		},
+		backOption
 	]
+
 	print(globals._overflow)
 	if globals._overflow.has_permission("r") then
 		if globals._overflow.is_folder then
+			displayFolderOption = new OptionHandler
+			displayFolderOption.construct(colors.green, "Display Folder content")
+			displayFolderOption.handler = function()
+				print("Folder path : " + globals._overflow.path())
+				showFolder(globals._overflow)
+				overflowFileHandler()
+			end function
+
 			overflowFileOptions = overflowFileOptions + [
-				{
-					"color": colors.green,
-					"text": "Display Folder content",
-					"handler": function()
-						folderPath = user_input("Select File Path :")
-						showFolder(folderPath)
-					end function
-				}
+				displayFolderOption
 			]
 		else
+			displayFileOption = new OptionHandler
+			displayFileOption.construct(colors.green, "Display File content")
+			displayFileOption.handler = function()
+				print("File path : " + globals._overflow.path())
+				showFile(globals._overflow)
+				overflowFileHandler()
+			end function
+
+			displayDecryptedFileOption = new OptionHandler
+			displayDecryptedFileOption.construct(colors.green, "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)")
+			displayDecryptedFileOption.handler = function()
+				print("File path : " + globals._overflow.path())
+				decryptUserFile(globals._overflow)
+			end function
+
 			overflowFileOptions = overflowFileOptions + [
-				{
-					"color": colors.green,
-					"text": "Display File content",
-					"handler": function()
-						filePath = user_input("Select File Path :")
-						showFile(filePath)
-					end function
-				},
-				{
-					"color": colors.green,
-					"text": "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)",
-					"handler": function()
-						filePath = user_input("Select File Path :")
-						decryptUserFile(filePath)
-					end function
-				}
+				displayFileOption,
+				displayDecryptedFileOption
 			]
 		end if
 	else
 		print(colors.red + "No permission")
 	end if
 
-	optionsHandler(overflowFileOptions, colors.green + "Select action : ")
+	optionsHandler = new OptionsHandler
+	optionsHandler.construct(overflowFileOptions, colors.green + "Select action : ")
+
+	optionsHandler.display()
 end function
 
 overflowNumberHandler = function()
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		unsecZoneHandler(globals.selected_service)
+	end function
+
 	overflowNumberOptions = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				libAttackHandler(globals.selected_service)
-			end function
-		},
+		backOption
 	]
 	
 	print(globals._overflow)
 
-	optionsHandler(overflowNumberOptions, colors.green + "Select action : ")
+	optionsHandler = new OptionsHandler
+	optionsHandler.construct(overflowNumberOptions, colors.green + "Select action : ")
+
+	optionsHandler.display()
 end function
 
 overflowStringHandler = function()
-	overflowStringOptions = [
-		{
-			"color": colors.green,
-			"text": "Back",
-			"handler": function()
-				libAttackHandler(globals.selected_service)
-			end function
-		},
+	backOption = new OptionHandler
+	backOption.construct(colors.green, "Back")
+	backOption.handler = function()
+		unsecZoneHandler(globals.selected_service)
+	end function
+
+	overflowNumberOptions = [
+		backOption
 	]
 
 	print(globals._overflow)
 
-	optionsHandler(overflowStringOptions, colors.green + "Select action : ")
+	optionsHandler = new OptionsHandler
+	optionsHandler.construct(overflowStringOptions, colors.green + "Select action : ")
+
+	optionsHandler.display()
 end function
 
 mainMenu()

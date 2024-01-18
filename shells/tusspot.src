@@ -210,6 +210,7 @@ setterMenu = function()
 	end function
 
 	options = options + [
+		targetIPOption,
 		passInjectOption
 	]
 
@@ -534,7 +535,7 @@ unsecZoneHandler = function()
 			optionsArgs = [nullArgsOption, targetIPArgsOption, passInjectArgsOption]
 
 			optionsHandlerArgs = new OptionsHandler
-			optionsHandlerArgs.construct(optionsArgs, colors.green + "Select which args should use for Overflow")
+			optionsHandlerArgs.construct(optionsArgs, colors.green + "Select which args should use for Overflow : ")
 			optionsHandlerArgs.display()
 
 			if optArgs != null then

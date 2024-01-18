@@ -6,11 +6,11 @@ import_code("../imports/options.src")
 import_code("../imports/files.src")
 
 metaxploit = include_lib("/lib/metaxploit.so")
-if not metaxploit then metaxploit = include_lib(program_path() + "metaxploit.so")
+if not metaxploit then metaxploit = include_lib(current_path() + "metaxploit.so")
 if not metaxploit then exit("Cannot find Metaxploit Lib")
 
 crypto = include_lib("/lib/crypto.so")
-if not crypto then crypto = include_lib(program_path() + "crypto.so")
+if not crypto then crypto = include_lib(current_path() + "crypto.so")
 if not crypto then exit("Cannot find Crypto Lib")
 
 globals.MODE = null
@@ -467,7 +467,7 @@ libAttackHandler = function(service)
 		end if
 
 		clearOption = new OptionHandler
-		clearOption.construct(colors.orange, "Clear screen")
+		clearOption.construct(colors.yellow, "Clear screen")
 		clearOption.handler = function()
 			clear_screen
 		end function
@@ -585,7 +585,7 @@ unsecZoneHandler = function()
 		end if
 
 		clearOption = new OptionHandler
-		clearOption.construct(colors.orange, "Clear screen")
+		clearOption.construct(colors.yellow, "Clear screen")
 		clearOption.handler = function()
 			clear_screen
 		end function

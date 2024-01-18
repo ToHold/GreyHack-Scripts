@@ -15,7 +15,8 @@ if not crypto then exit("Cannot find Crypto Lib")
 
 globals.MODE = null
 globals.victim_router_ip = null
-globals.victim_ip = null
+globals.filter_ip = null
+globals.target_ip = null
 globals.injected_password = null
 globals.selected_service = null
 globals.memoryWeakIndex = 0
@@ -134,23 +135,23 @@ setterMenu = function()
 			setterMenu()
 		end function
 
-		attackIPOption = new OptionHandler
-		attackIPOption.construct(colors.green, "Set IP to attack" + getCurrentIPSet(victim_ip))
-		attackIPOption.handler = function()
+		filterIPOption = new OptionHandler
+		filterIPOption.construct(colors.green, "Set IP to filter" + getCurrentIPSet(filter_ip))
+		filterIPOption.handler = function()
 			while true
 				next = true
-				victim_ip = user_input(colors.green + "Choose IP to attack (press enter to skip) : ")
+				filter_ip = user_input(colors.green + "Choose IP to filter (press enter to skip) : ")
 
-				if victim_ip.len == 0 then 
-				victim_ip = null
+				if filter_ip.len == 0 then 
+				filter_ip = null
 					break
 				end if
-				if victim_ip and not isIP(victim_router_ip) then
+				if filter_ip and not isIP(victim_router_ip) then
 					print(colors.yellow + "Invalid IP")
 					next = false
 				end if
 
-				globals.victim_ip = victim_ip
+				globals.filter_ip = filter_ip
 
 				if next then break
 			end while
@@ -160,35 +161,57 @@ setterMenu = function()
 
 		options = options + [
 			routerIPOption,
-			attackIPOption
+			filterIPOption
 		]
 	end if
 
-	if MODE != "ROUTER" then
-		passInjectOption = new OptionHandler
-		passInjectOption.construct(colors.green, "Set Password to inject" + getCurrentIPSet(injected_password))
-		passInjectOption.handler = function()
-			while true
-				next = true
-				injected_password = user_input(colors.green + "Choose Password to inject (press enter to skip) : ")
+	targetIPOption = new OptionHandler
+	targetIPOption.construct(colors.green, "Set IP to target" + getCurrentIPSet(target_ip))
+	targetIPOption.handler = function()
+		while true
+			next = true
+			target_ip = user_input(colors.green + "Choose IP to target (press enter to skip) : ")
 
-				if injected_password.len == 0 then 
-					injected_password = null
-					break
-				end if
+			if target_ip.len == 0 then 
+				target_ip = null
+				break
+			end if
+			if target_ip and not isIP(victim_router_ip) then
+				print(colors.yellow + "Invalid IP")
+				next = false
+			end if
 
-				globals.injected_password = injected_password
+			globals.target_ip = target_ip
 
-				if next then break
-			end while
-			// stay in setterMenu
-			setterMenu()
-		end function
+			if next then break
+		end while
+		// stay in setterMenu
+		setterMenu()
+	end function
 
-		options = options + [
-			passInjectOption
-		]
-	end if
+	passInjectOption = new OptionHandler
+	passInjectOption.construct(colors.green, "Set Password to inject" + getCurrentIPSet(injected_password))
+	passInjectOption.handler = function()
+		while true
+			next = true
+			injected_password = user_input(colors.green + "Choose Password to inject (press enter to skip) : ")
+
+			if injected_password.len == 0 then 
+				injected_password = null
+				break
+			end if
+
+			globals.injected_password = injected_password
+
+			if next then break
+		end while
+		// stay in setterMenu
+		setterMenu()
+	end function
+
+	options = options + [
+		passInjectOption
+	]
 
 	continueOption = new OptionHandler
 	continueOption.construct(colors.green, "Continue")
@@ -197,7 +220,7 @@ setterMenu = function()
 			clear_screen()
 			featuresMenu()
 		else
-			if victim_ip or victim_router_ip then 
+			if filter_ip or victim_router_ip then 
 				clear_screen()
 				featuresMenu() 
 			else
@@ -228,7 +251,7 @@ featuresMenu = function()
 	nmapOption.construct(colors.green, "NMAP")
 	nmapOption.handler = function()
 		if MODE == "ROUTER" or MODE == "DEVICE" then
-			nmap(MODE, victim_ip, victim_router_ip)
+			nmap(MODE, filter_ip, victim_router_ip)
 		else
 			nmap(MODE)
 		end if
@@ -242,26 +265,26 @@ featuresMenu = function()
 	attackOption.handler = function()
 		services = []
 		if MODE == "ROUTER" then 
-			if victim_router_ip and victim_ip then
-				routedServices = getRoutedServices(get_router(victim_router_ip), victim_ip, true)
+			if victim_router_ip and filter_ip then
+				routedServices = getRoutedServices(get_router(victim_router_ip), filter_ip, true)
 				services = services + routedServices
-			else if victim_router_ip and not victim_ip then
+			else if victim_router_ip and not filter_ip then
 				routedServices = getRoutedServices(get_router(victim_router_ip), null, true)
 				services = services + routedServices
-			else if victim_ip then
-				routedServices = getRoutedServices(get_router(), victim_ip, true)
+			else if filter_ip then
+				routedServices = getRoutedServices(get_router(), filter_ip, true)
 				services = services + routedServices
 			end if
 		end if
 		if MODE == "DEVICE" then 
-			if victim_router_ip and victim_ip then
-				deviceServices = getDeviceServices(get_router(victim_router_ip), victim_ip, true)
+			if victim_router_ip and filter_ip then
+				deviceServices = getDeviceServices(get_router(victim_router_ip), filter_ip, true)
 				services = services + deviceServices
-			else if victim_router_ip and not victim_ip then
+			else if victim_router_ip and not filter_ip then
 				deviceServices = getDeviceServices(get_router(victim_router_ip), null, true)
 				services = services + deviceServices
-			else if victim_ip then
-				deviceServices = getDeviceServices(get_router(), victim_ip, true)
+			else if filter_ip then
+				deviceServices = getDeviceServices(get_router(), filter_ip, true)
 				services = services + deviceServices
 			end if
 		else if MODE == "LOCAL" then  
@@ -364,17 +387,20 @@ servicesSelectMenu = function()
 end function
 
 libAttackHandler = function(service)
-	if MODE == "ROUTER" then 
-		netSession = metaxploit.net_use(service.publicIP, service.port.port_number())
-	else
-		netSession = metaxploit.net_use(service.ip, service.port.port_number())
+
+	if service.lib == null then
+		if MODE == "ROUTER" then 
+			netSession = metaxploit.net_use(service.publicIP, service.port.port_number())
+		else
+			netSession = metaxploit.net_use(service.ip, service.port.port_number())
+		end if
+	
+		service.metalib = netSession.dump_lib()
+		service.lib = scanlib(service, metaxploit)
 	end if
 
-	service.metalib = netSession.dump_lib()
-	service.lib = scanlib(service, metaxploit)
-
-	if globals.memoryWeakIndex > selected_service.lib.memoryWeaks.len then globals.memoryWeakIndex = 0
-	while memoryWeakIndex < selected_service.lib.memoryWeaks.len
+	if globals.memoryWeakIndex > service.lib.memoryWeaks.len then globals.memoryWeakIndex = 0
+	while memoryWeakIndex < service.lib.memoryWeaks.len
 		backOption = new OptionHandler
 		backOption.construct(colors.green, "Back")
 		backOption.handler = function()
@@ -452,7 +478,7 @@ unsecZoneHandler = function()
 		backOption = new OptionHandler
 		backOption.construct(colors.green, "Back")
 		backOption.handler = function()
-			libAttackHandler()
+			libAttackHandler(globals.selected_service)
 		end function
 
 		unsecZoneOptions = [
@@ -485,14 +511,33 @@ unsecZoneHandler = function()
 		selectOption = new OptionHandler
 		selectOption.construct(colors.green, "Select current Unsecured Zone ( " + unsecZone +" )")
 		selectOption.handler = function()
-			optArgs = null
-			if MODE == "ROUTER" then
-				optArgs = victim_ip
-			else
-				optArgs = injected_password
-			end if
+			globals.optArgs = null
 
-			if optArgs then
+			nullArgsOption = new OptionHandler
+			nullArgsOption.construct(colors.green, "No Args")
+			nullArgsOption.handler = function()
+				globals.optArgs = null
+			end function
+
+			targetIPArgsOption = new OptionHandler
+			targetIPArgsOption.construct(colors.green, "Victim device IP to target (from setter)")
+			targetIPArgsOption.handler = function()
+				globals.optArgs = globals.target_ip
+			end function
+
+			passInjectArgsOption = new OptionHandler
+			passInjectArgsOption.construct(colors.green, "Injected password (from setter)")
+			passInjectArgsOption.handler = function()
+				globals.optArgs = globals.injected_password
+			end function
+
+			optionsArgs = [nullArgsOption, targetIPArgsOption, passInjectArgsOption]
+
+			optionsHandlerArgs = new OptionsHandler
+			optionsHandlerArgs.construct(optionsArgs, colors.green + "Select which args should use for Overflow")
+			optionsHandlerArgs.display()
+
+			if optArgs != null then
 				overflowHandler(
 					selected_service.metalib.overflow(memoryWeakKey, unsecZone, optArgs)
 				)
@@ -557,7 +602,7 @@ overflowShellHandler = function()
 	backOption = new OptionHandler
 	backOption.construct(colors.green, "Back")
 	backOption.handler = function()
-		unsecZoneHandler(globals.selected_service)
+		unsecZoneHandler()
 	end function
 
 	startTerminalOption = new OptionHandler
@@ -583,14 +628,16 @@ overflowComputerHandler = function()
 	backOption = new OptionHandler
 	backOption.construct(colors.green, "Back")
 	backOption.handler = function()
-		unsecZoneHandler(globals.selected_service)
+		unsecZoneHandler()
 	end function
 
 	displayFolderOption = new OptionHandler
 	displayFolderOption.construct(colors.green, "Display Folder content")
 	displayFolderOption.handler = function()
-		folderPath = user_input("Select File Path :")
-		showFolder(globals._overflow.File(folderPath))
+		folderPath = user_input("Select Folder Path :")
+		if folderPath.len > 0 then
+			showFolder(globals._overflow.File(folderPath))
+		end if
 		overflowComputerHandler()
 	end function
 
@@ -598,7 +645,9 @@ overflowComputerHandler = function()
 	displayFileOption.construct(colors.green, "Display File content")
 	displayFileOption.handler = function()
 		filePath = user_input("Select File Path :")
-		showFile(globals._overflow.File(filePath))
+		if filePath.len > 0 then
+			showFile(globals._overflow.File(filePath))
+		end if
 		overflowComputerHandler()
 	end function
 
@@ -606,7 +655,9 @@ overflowComputerHandler = function()
 	displayDecryptedFileOption.construct(colors.green, "Display Decrypted User like File (passwd, Mail.txt, Bank.txt)")
 	displayDecryptedFileOption.handler = function()
 		filePath = user_input("Select File Path :")
-		decryptUserFile(globals._overflow.File(filePath))
+		if filePath.len > 0 then
+			decryptUserFile(globals._overflow.File(filePath))
+		end if
 		overflowComputerHandler()
 	end function
 
@@ -649,7 +700,7 @@ overflowFileHandler = function()
 	backOption = new OptionHandler
 	backOption.construct(colors.green, "Back")
 	backOption.handler = function()
-		unsecZoneHandler(globals.selected_service)
+		unsecZoneHandler()
 	end function
 
 	overflowFileOptions = [
@@ -705,7 +756,7 @@ overflowNumberHandler = function()
 	backOption = new OptionHandler
 	backOption.construct(colors.green, "Back")
 	backOption.handler = function()
-		unsecZoneHandler(globals.selected_service)
+		unsecZoneHandler()
 	end function
 
 	overflowNumberOptions = [
@@ -724,7 +775,7 @@ overflowStringHandler = function()
 	backOption = new OptionHandler
 	backOption.construct(colors.green, "Back")
 	backOption.handler = function()
-		unsecZoneHandler(globals.selected_service)
+		unsecZoneHandler()
 	end function
 
 	overflowNumberOptions = [

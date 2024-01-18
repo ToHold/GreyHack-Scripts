@@ -466,6 +466,16 @@ libAttackHandler = function(service)
 			]
 		end if
 
+		clearOption = new OptionHandler
+		clearOption.construct(colors.orange, "Clear screen")
+		clearOption.handler = function()
+			clear_screen
+		end function
+
+		memoryWeaksOptions = memoryWeaksOptions + [
+			clearOption
+		]
+
 		libAttackHandlerOptionsHandler = new OptionsHandler
 		libAttackHandlerOptionsHandler.construct(memoryWeaksOptions, colors.green + "Choose Memory Weaks : ")
 
@@ -573,6 +583,16 @@ unsecZoneHandler = function()
 				nextOption
 			]
 		end if
+
+		clearOption = new OptionHandler
+		clearOption.construct(colors.orange, "Clear screen")
+		clearOption.handler = function()
+			clear_screen
+		end function
+
+		unsecZoneOptions = unsecZoneOptions + [
+			clearOption
+		]
 
 		unsecZoneOptionsHandler = new OptionsHandler
 		unsecZoneOptionsHandler.construct(unsecZoneOptions, colors.green + "Choose Unsecured Zone : ")

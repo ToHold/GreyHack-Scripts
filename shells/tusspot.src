@@ -6,11 +6,11 @@ import_code("../imports/options.src")
 import_code("../imports/files.src")
 
 metaxploit = include_lib("/lib/metaxploit.so")
-if not metaxploit then metaxploit = include_lib(current_path() + "metaxploit.so")
+if not metaxploit then metaxploit = include_lib(current_path() + "/metaxploit.so")
 if not metaxploit then exit("Cannot find Metaxploit Lib")
 
 crypto = include_lib("/lib/crypto.so")
-if not crypto then crypto = include_lib(current_path() + "crypto.so")
+if not crypto then crypto = include_lib(current_path() + "/crypto.so")
 if not crypto then exit("Cannot find Crypto Lib")
 
 globals.MODE = null
@@ -417,6 +417,7 @@ libAttackHandler = function(service)
 			previousOption.construct(colors.green, "Previous Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex - 1] +" )")
 			previousOption.handler = function()
 				globals.memoryWeakIndex = memoryWeakIndex - 1
+				clear_screen()
 			end function
 
 			memoryWeaksOptions = memoryWeaksOptions + [
@@ -438,6 +439,7 @@ libAttackHandler = function(service)
 		selectOption.handler = function()
 			globals.memoryWeakKey = selected_service.lib.memoryWeaks.indexes[memoryWeakIndex]
 			globals.memoryWeak = selected_service.lib.memoryWeaks[memoryWeakKey]
+			clear_screen()
 			unsecZoneHandler()
 		end function
 
@@ -450,6 +452,7 @@ libAttackHandler = function(service)
 			nextOption.construct(colors.green, "Next Memory Weaks ( " + selected_service.lib.memoryWeaks.indexes[memoryWeakIndex + 1] +" )")
 			nextOption.handler = function()
 				globals.memoryWeakIndex = memoryWeakIndex + 1
+				clear_screen()
 			end function
 
 			memoryWeaksOptions = memoryWeaksOptions + [
@@ -465,16 +468,6 @@ libAttackHandler = function(service)
 				nextOption
 			]
 		end if
-
-		clearOption = new OptionHandler
-		clearOption.construct(colors.yellow, "Clear screen")
-		clearOption.handler = function()
-			clear_screen
-		end function
-
-		memoryWeaksOptions = memoryWeaksOptions + [
-			clearOption
-		]
 
 		libAttackHandlerOptionsHandler = new OptionsHandler
 		libAttackHandlerOptionsHandler.construct(memoryWeaksOptions, colors.green + "Choose Memory Weaks : ")
